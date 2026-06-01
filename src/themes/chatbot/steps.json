@@ -1,0 +1,24 @@
+[
+  {
+    "id": "1",
+    "message": "¡Hola! Soy tu asistente. ¿En qué puedo ayudarte?",
+    "trigger": "2"
+  },
+  {
+    "id": "2",
+    "options": [
+      { "label": "Información", "value": "info", "trigger": "3" },
+      { "label": "Soporte", "value": "soporte", "trigger": "4" }
+    ]
+  },
+  {
+    "id": "3",
+    "message": "Te doy información sobre nuestros productos.",
+    "end": true
+  },
+  {
+    "id": "4",
+    "message": "Por favor describe tu problema y te ayudaremos.",
+    "end": true
+  }
+]

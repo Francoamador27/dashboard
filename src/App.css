@@ -1,0 +1,106 @@
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+.nav-link-active .MuiListItemButton-root {
+  background-color: rgba(25, 118, 210, 0.12); /* MUI primary.light por defecto */
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+.perspective {
+  perspective: 1000px;
+}
+
+.transform-style-preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+}
+
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+.checkout .cart-product {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    gap: 14px;
+}
+/* Estilos para corregir overflow del Swiper en mobile */
+
+.galeria-swiper-main {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: hidden;
+}
+
+.galeria-swiper-main .swiper-wrapper {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.galeria-swiper-main .swiper-slide {
+  width: 100% !important;
+  max-width: 100% !important;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+/* Asegurar que las imágenes no causen overflow */
+.galeria-swiper-main .swiper-slide img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* Ajustar navegación en mobile */
+@media (max-width: 768px) {
+  .galeria-swiper-main .swiper-button-prev,
+  .galeria-swiper-main .swiper-button-next {
+    width: 32px !important;
+    height: 32px !important;
+  }
+  
+  .galeria-swiper-main .swiper-button-prev:after,
+  .galeria-swiper-main .swiper-button-next:after {
+    font-size: 16px !important;
+  }
+}

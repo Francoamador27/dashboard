@@ -1,0 +1,27 @@
+.rcb-bot-avatar {
+  border-radius: 50%;
+}
+
+.rcb-options-container {
+  height: 41px;
+}
+
+.rcb-close-chat-icon::after {
+  background-color: transparent;
+  transition: none;
+}
+
+.rcb-checkbox-row-container:hover {
+  margin-top: 1px;
+  margin-left: 1px;
+}
+
+.rcb-checkbox-next-button:hover {
+  margin-top: 1px;
+  margin-left: 1px;
+  background-color: #19c37d; /* Accent Color */
+}
+
+.rcb-dot {
+  background-color: #40414f; /* Bubble Dot Color */
+}

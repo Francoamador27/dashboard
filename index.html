@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="Cache-Control" content="no-cache" />
+
+  <!-- Preload fuente principal -->
+  <link rel="preload" href="/src/assets/fonts/GalanoGrotesqueRegular.otf" as="font" type="font/otf" crossorigin />
+
+  <!-- Preconnect to API host for hero images -->
+  <link rel="preconnect" href="https://apiankaloo.proyectoswebsite.com" crossorigin />
+
+  <style>
+    body {
+      background: #fefbf5;
+    }
+
+    #root {
+      min-height: 100vh;
+    }
+  </style>
+
+  <!-- Icono principal para iOS (Home Screen) -->
+  <link rel="apple-touch-icon" sizes="180x180" href="/icono.png" />
+
+  <!-- Opcionales (más tamaños para iPads y versiones viejas) -->
+  <link rel="apple-touch-icon" sizes="152x152" href="/icono.png" />
+  <link rel="apple-touch-icon" sizes="167x167" href="/icono.png" />
+
+</head>
+
+<body>
+
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+
+</html>

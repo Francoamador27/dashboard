@@ -1,0 +1,611 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "swiper/css";
+@import "swiper/css/effect-coverflow";
+@import "swiper/css/effect-fade";
+@import "swiper/css/pagination";
+@import "swiper/css/navigation";
+@import "swiper/css/free-mode";
+
+/* Import Google Fonts: Poppins (base) y Playfair Display (títulos) */
+@custom-variant dark (&:is(.dark *));
+
+/* Galano Grotesque - Fuente corporativa */
+@font-face {
+  font-family: "Galano Grotesque";
+  src: url("./assets/fonts/GalanoGrotesqueLight.otf") format("opentype");
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Galano Grotesque";
+  src: url("./assets/fonts/GalanoGrotesqueRegular.otf") format("opentype");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Galano Grotesque";
+  src: url("./assets/fonts/GalanoGrotesqueMedium.otf") format("opentype");
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Galano Grotesque";
+  src: url("./assets/fonts/GalanoGrotesqueSemiBold.otf") format("opentype");
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Galano Grotesque";
+  src: url("./assets/fonts/GalanoGrotesqueBold.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Colores de Anka Loo Construcciones */
+:root {
+  --revenant-primary: #fdce27;
+  --revenant-primary-hover: #e6b800;
+  --revenant-dark: #1c1c1c;
+  --revenant-light: #f4f4f4;
+  --ankaloo-gold: #fdce27;
+  --ankaloo-gold-hover: #e6b800;
+  --ankaloo-dark: #1c1c1c;
+  --ankaloo-gray: #f4f4f4;
+  --ankaloo-mid: #5a5a5a;
+  --ankaloo-slate: #2c2c2c;
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+/* Fuente base: Galano Grotesque para todo */
+body,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+a,
+p,
+span,
+button,
+input,
+textarea {
+  font-family: "Galano Grotesque", sans-serif;
+}
+
+/* Clase especial para títulos corporativos */
+.galano-bold {
+  font-family: "Galano Grotesque", sans-serif;
+  font-weight: 700;
+}
+
+.revenant-accent {
+  color: var(--revenant-primary);
+}
+
+.card img {
+  display: block;
+  max-width: 60%;
+}
+
+.stack {
+  width: 55%;
+  max-width: 400px;
+  transition: 0.25s ease;
+
+  &:hover {
+    transform: rotate(5deg);
+
+    .card:before {
+      transform: translatey(-2%) rotate(-4deg);
+    }
+
+    .card:after {
+      transform: translatey(2%) rotate(4deg);
+    }
+  }
+}
+
+.card {
+  aspect-ratio: 3 / 2;
+  border: 4px solid;
+  background-color: #fff;
+  position: relative;
+  transition: 0.15s ease;
+  cursor: pointer;
+  padding: 5% 5% 5% 5%;
+
+  &:before,
+  &:after {
+    content: "";
+    display: block;
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    border: 4px solid;
+    background-color: #fff;
+    transform-origin: center center;
+    z-index: -1;
+    transition: 0.15s ease;
+    top: 0;
+    left: 0;
+  }
+
+  &:before {
+    transform: translatey(-2%) rotate(-6deg);
+  }
+
+  &:after {
+    transform: translatey(2%) rotate(6deg);
+  }
+}
+
+.image {
+  width: 100%;
+  border: 4px solid;
+  background-color: #eee;
+  aspect-ratio: 1 / 1;
+  position: relative;
+}
+
+.browser-warning {
+  margin-bottom: 4rem;
+}
+
+@supports (aspect-ratio: 1 / 1) {
+  .browser-warning {
+    display: none;
+  }
+}
+
+.titulo-principal {
+  font-family: "Galano Grotesque";
+  font-weight: 600;
+  line-height: 1.2;
+  font-size: 73px;
+}
+
+.description-principal {
+  font-weight: 400;
+  font-size: 22px;
+  font-family: "Galano Grotesque";
+  line-height: 1.5;
+}
+
+.unboxing-container {
+  max-width: 689px;
+}
+
+@media (max-width: 768px) {
+  .titulo-principal {
+    font-family: "Galano Grotesque";
+    font-weight: 600;
+    line-height: 1.2;
+    font-size: 37px;
+  }
+
+  .description-principal {
+    font-size: 16px;
+    line-height: 24px;
+  }
+}
+
+body {
+  background: #f4f4f4;
+}
+
+.checkout .cart-product {
+  display: flex;
+  justify-content: space-around;
+  gap: 14px;
+}
+
+.nav-link-active .MuiListItemButton-root {
+  background-color: rgba(0, 51, 102, 0.15);
+  /* #003366 with opacity */
+}
+
+.perspective {
+  perspective: 1000px;
+}
+
+.transform-style-preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+}
+
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+
+.checkout .cart-product {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-around;
+  gap: 14px;
+}
+
+@media (max-width: 650px) {
+  .fc-button-primary {
+    font-size: 10px !important;
+  }
+
+  .fc-toolbar-title {
+    font-size: 12px !important;
+  }
+
+  th.fc-col-header-cell {
+    font-size: 8px;
+  }
+}
+
+.galeria-swiper-main .swiper-pagination {
+  bottom: 20px !important;
+}
+
+/* ─── Hero Swiper (FeatureSection) ─────────────────────────────────── */
+.hero-swiper,
+.hero-swiper .swiper-wrapper,
+.hero-swiper .swiper-slide {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.swiper-button-next,
+.swiper-button-prev {
+  height: 30px;
+  width: 30px;
+  color: #fdce27;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 0;
+  border: none;
+  font-size: 5px;
+  padding: 0px 0px;
+  transition: all 0.25s ease;
+  margin: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.swiper-button-next,
+.swiper-button-prev {
+  color: #fdce27;
+  width: 30px;
+  font-size: 5px;
+  height: 40px;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 0;
+  border: none;
+  padding: 10px 5px;
+  transition: all 0.25s ease;
+  margin: 0;
+  top: 50%;
+  transform: translateY(-50%);
+}
+.swiper-pagination-bullet-active {
+  background: #fdce27;
+}
+
+.hero-swiper .swiper-button-prev {
+  left: 0;
+}
+.hero-swiper .swiper-button-next {
+  right: 0;
+}
+
+.hero-swiper .swiper-button-next:hover,
+.hero-swiper .swiper-button-prev:hover {
+  background: rgba(253, 206, 39, 0.25);
+  color: #fdce27;
+}
+
+.hero-swiper .swiper-button-next::after,
+.hero-swiper .swiper-button-prev::after {
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.hero-swiper .swiper-pagination-bullet {
+  background: rgba(255, 255, 255, 0.5);
+  opacity: 1;
+  width: 8px;
+  height: 3px;
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+
+.hero-swiper .swiper-pagination-bullet-active {
+  background: #fdce27;
+  opacity: 1;
+  width: 32px;
+  border-radius: 2px;
+  transition: width 0.3s;
+}
+
+.hero-swiper .swiper-pagination {
+  bottom: 28px;
+}
+
+.galeria-swiper-main .swiper-pagination-bullet {
+  width: 8px;
+  height: 8px;
+  background: #1c1c1c;
+  opacity: 0.25;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.galeria-swiper-main .swiper-pagination-bullet-active {
+  opacity: 1;
+  width: 28px;
+  border-radius: 12px;
+  background: #fdce27;
+}
+
+.galeria-swiper-main .swiper-button-next,
+.galeria-swiper-main .swiper-button-prev {
+  color: #1c1c1c;
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(10px);
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  border: 2px solid #fdce27;
+  transition: all 0.3s ease;
+}
+
+.galeria-swiper-main .swiper-button-next:hover,
+.galeria-swiper-main .swiper-button-prev:hover {
+  background: #fdce27;
+  transform: scale(1.1);
+}
+
+.galeria-swiper-main .swiper-button-next:after,
+.galeria-swiper-main .swiper-button-prev:after {
+  font-size: 18px;
+  font-weight: 900;
+}
+
+@media (max-width: 1024px) {
+  .galeria-swiper-main .swiper-button-next,
+  .galeria-swiper-main .swiper-button-prev {
+    display: none;
+  }
+
+  .galeria-swiper-main {
+    overflow: visible !important;
+  }
+
+  .galeria-swiper-main .swiper-slide {
+    transition: transform 0.3s ease;
+    transform: scale(0.9);
+  }
+
+  .galeria-swiper-main .swiper-slide-active {
+    transform: scale(1);
+  }
+}
+
+.galeria-swiper-main .swiper-slide-shadow-left,
+.galeria-swiper-main .swiper-slide-shadow-right {
+  background-image: none;
+}
+
+.galeria-thumbs .swiper-slide-thumb-active {
+  opacity: 1;
+}
+
+.galeria-thumbs .swiper-slide {
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+}
+
+.galeria-thumbs .swiper-slide:hover {
+  opacity: 1;
+}
+
+.styles-module_chatHeader__gaeOA img {
+  vertical-align: middle;
+  border-radius: 50%;
+  height: 60px;
+  width: 55px;
+  border: 1px solid rgba(255, 255, 255, 0.473);
+  object-fit: contain;
+}
+
+img.logo-header {
+  height: 36px !important;
+}
+
+.css-dkvxbp-MuiButtonBase-root-MuiListItemButton-root.Mui-selected {
+  background-color: #003366 !important;
+  color: white;
+}
+
+.whatsapp-form {
+  width: 100%;
+  max-width: 255px;
+  margin: 0 auto;
+  padding: 10px 0px;
+}
+
+.chat-location {
+  margin: 0 auto;
+}
+
+/* Animaciones para Blog */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeInUp {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+@theme inline {
+  --font-galano: "Galano Grotesque", sans-serif;
+  --font-sans: var(--font-galano);
+  --font-serif: var(--font-galano);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+.swiper-button-prev,
+.swiper-button-next {
+  color: #fdce27 !important;
+}
+/* SplitText Styles */
+.split-parent {
+  font-size: 3rem;
+  font-weight: 700;
+  color: #fdce27;
+  line-height: 1.2;
+  display: block;
+  margin: 2rem 0;
+}
+
+.split-char {
+  display: inline-block;
+}
+
+.split-word {
+  display: inline-block;
+  margin-right: 0.25em;
+}
+
+.split-line {
+  display: block;
+}
+.tiptap li {
+  list-style: circle;
+}
