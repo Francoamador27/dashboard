@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
 import useAuthStore from "../store/authStore";
 import useCont from "../../hooks/useCont";
+import logoFallback from "../../assets/img/logo/image.png";
 
 export default function DashboardLogin() {
   const [email, setEmail] = useState("");
@@ -50,7 +51,11 @@ export default function DashboardLogin() {
       >
         {/* Logo */}
         <div className="flex flex-col items-center mb-8 gap-3">
-          <img src={company.logo} alt="Logo" className="h-14 w-auto object-contain" />
+          <img
+            src={company.logo || logoFallback}
+            alt="Logo"
+            className="h-14 w-auto object-contain"
+          />
           <p className="text-slate-500 text-sm text-center">
             Acceso al soporte de Grupo Bits
           </p>
