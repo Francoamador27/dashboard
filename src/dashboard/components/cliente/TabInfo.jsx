@@ -1,6 +1,7 @@
 import { useState, useRef } from 'react';
 import { Save, Loader2, Upload, Globe, Mail, Phone, MessageCircle, MapPin, DollarSign, Plus, X, Instagram, Youtube, Linkedin, Twitter } from 'lucide-react';
 import { useUpdateCliente, useUploadLogo } from '../../hooks/useClientes';
+import { imageUrl } from '../../hooks/useGaleria';
 
 const REDES_OPTS = [
   { id: 'instagram', label: 'Instagram', icon: Instagram, placeholder: 'https://instagram.com/...' },
@@ -70,7 +71,7 @@ export default function TabInfo({ cliente }) {
         <div className="flex items-center gap-4">
           {cliente.logo_path ? (
             <img
-              src={`${import.meta.env.VITE_API_URL?.replace('/api', '')}/storage/${cliente.logo_path}`}
+              src={imageUrl('/storage/' + cliente.logo_path)}
               alt={cliente.nombre}
               className="w-20 h-20 rounded-xl object-cover border border-slate-200 dark:border-white/10"
             />
