@@ -2,10 +2,14 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 
 const BASE = import.meta.env.VITE_API_URL?.replace('/api', '') ?? 'https://dashboard.test';
+const PROD_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') ?? BASE;
 
 export const imageUrl = (url) => {
   if (!url) return null;
-  return url.startsWith('http') ? url : `${BASE}${url}`;
+  if (url.startsWith('http')) {
+    return url.replace('https://dashboard.test', PROD_BASE).replace('http://dashboard.test', PROD_BASE);
+  }
+  return `${BASE}${url}`;
 };
 
 export function useAssets(filters = {}) {

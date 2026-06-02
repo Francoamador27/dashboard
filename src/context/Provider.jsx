@@ -87,7 +87,7 @@ const Provider = ({ children }) => {
     try {
       setSettingsLoading(true);
       setSettingsError(null);
-      const { data } = await clienteAxios.get("/api/settings");
+      const { data } = await clienteAxios.get("/settings");
       setSettings(data);
     } catch {
       setSettingsError("No se pudo cargar la configuración.");
