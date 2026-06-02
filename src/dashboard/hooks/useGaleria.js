@@ -2,13 +2,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api from '../lib/api';
 
 const BASE = import.meta.env.VITE_API_URL?.replace('/api', '') ?? 'https://dashboard.test';
-const PROD_BASE = import.meta.env.VITE_API_URL?.replace('/api', '') ?? BASE;
 
 export const imageUrl = (url) => {
   if (!url) return null;
-  if (url.startsWith('http')) {
-    return url.replace('https://dashboard.test', PROD_BASE).replace('http://dashboard.test', PROD_BASE);
-  }
+  // Extraer el path /storage/... sin importar el dominio o prefijo (/api, etc.)
+  const storageMatch = url.match(/\/storage\/.+/);
+  if (storageMatch) return `${BASE}${storageMatch[0]}`;
+  if (url.startsWith('http')) return url;
   return `${BASE}${url}`;
 };
 
