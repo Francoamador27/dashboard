@@ -1245,7 +1245,8 @@ export default function CreadorContenido({ onClose, clienteId }) {
   const goStep3 = (p, cfg) => { setPlantilla(p); setTplCfg(cfg); setStep(3); };
   const goStep4 = useCallback((entry) => {
     if (entry?.estado_editor) {
-      setTplCfg(entry.estado_editor.templateConfig);
+      const rawCfg = entry.estado_editor.templateConfig;
+      setTplCfg({ ...rawCfg, bgUrl: rawCfg.bgUrl ? imageUrl(rawCfg.bgUrl) : rawCfg.bgUrl });
       setBloques(entry.estado_editor.bloques.map(b => ({ ...b, id: _uid++ })));
       setPlantillaActivaId(entry.id);
     } else {
