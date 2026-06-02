@@ -126,15 +126,11 @@ async function loadImageForCanvas(url) {
     });
   }
 
-  // Storage o URL externa: fetch con token para evitar CORS en canvas
+  // Storage: archivos públicos, fetch sin auth para evitar preflight CORS
   try {
-    const token = localStorage.getItem('dashboard_token');
-    const resp  = await fetch(apiUrl, {
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
-    });
+    const resp = await fetch(apiUrl);
     if (!resp.ok) return null;
-    const blob    = await resp.blob();
-    const blobUrl = URL.createObjectURL(blob);
+    const blobUrl = URL.createObjectURL(await resp.blob());
     return new Promise(resolve => {
       const img = new Image();
       img.onload = () => { resolve(img); URL.revokeObjectURL(blobUrl); };
