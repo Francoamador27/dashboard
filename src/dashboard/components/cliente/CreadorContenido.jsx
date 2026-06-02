@@ -12,6 +12,7 @@ import {
   useActualizarCreadorPlantilla,
   useEliminarCreadorPlantilla,
 } from '../../hooks/useCreadorPlantillas';
+import { imageUrl } from '../../hooks/useGaleria';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 const TIPOS = {
@@ -101,15 +102,12 @@ const DEFAULT_BOTON = {
 function newBoton(extra = {}) { return { id: _uid++, ...DEFAULT_BOTON, ...extra }; }
 
 
-// Convierte una URL de /storage/... a /api/storage/... para que pase por CORS
-const API_BASE    = (import.meta.env.VITE_API_URL ?? 'http://localhost:8000/api').replace(/\/+$/, '');
-const STORAGE_BASE = API_BASE.replace(/\/api$/, '') + '/storage/';
+const API_BASE = (import.meta.env.VITE_API_URL ?? 'http://localhost:8000').replace(/\/+$/, '');
 
 function toApiStorageUrl(url) {
   if (!url || url.startsWith('blob:') || url.startsWith('data:')) return url;
-  if (url.startsWith(STORAGE_BASE)) {
-    return `${API_BASE}/storage/${url.slice(STORAGE_BASE.length)}`;
-  }
+  const match = url.match(/\/storage\/.+/);
+  if (match) return `${API_BASE}${match[0]}`;
   return url;
 }
 
@@ -571,7 +569,7 @@ function MisPlantillasStep({ clienteId, formato, tipo, onNext, onBack }) {
                 <div className="w-full overflow-hidden rounded-t-xl bg-slate-100 dark:bg-white/[0.04]"
                   style={{ aspectRatio: TIPOS[p.formato] ? `${TIPOS[p.formato].w}/${TIPOS[p.formato].h}` : '1/1', maxHeight: 160 }}>
                   {p.thumbnail_url
-                    ? <img src={p.thumbnail_url} alt={p.nombre} className="w-full h-full object-cover" />
+                    ? <img src={imageUrl(p.thumbnail_url)} alt={p.nombre} className="w-full h-full object-cover" />
                     : <div className="w-full h-full flex items-center justify-center text-slate-300 dark:text-white/10">
                         <BookMarked size={20} />
                       </div>
