@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "../lib/api";
 
-const BASE = import.meta.env.VITE_API_URL?.replace("/api", "") ?? "";
+const BASE = import.meta.env.VITE_API_URL ?? "";
 
 export const imageUrl = (url) => {
   if (!url) return null;
