@@ -45,7 +45,10 @@ export default function Sidebar() {
   const { data: activeData } = useActiveAssets();
   const activeCount = (activeData?.data ?? activeData ?? []).length;
 
-  const { data: ticketsAbiertos } = useTicketsAll({}, { refetchInterval: 30_000 });
+  const { data: ticketsAbiertos } = useTicketsAll(
+    {},
+    { refetchInterval: 30_000 },
+  );
 
   // Badge "no leído": tickets creados después de la última visita a /tickets
   const [lastVisit, setLastVisit] = useState(() =>
@@ -81,7 +84,7 @@ export default function Sidebar() {
       {/* Logo */}
       <div className="h-16 flex items-center px-6 border-b border-slate-200 dark:border-white/[0.06]">
         <span className="text-slate-900 dark:text-white font-semibold tracking-tight text-sm">
-          Dashboard <span className="text-[#c9a84c]">·</span> GrupoBits
+          Dashboard - <span className="text-[#c9a84c]">·</span> GrupoBits
         </span>
       </div>
 
