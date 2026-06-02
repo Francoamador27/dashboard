@@ -41,10 +41,18 @@ export function useActualizarCreadorPlantilla(clienteId) {
       const isForm = payload instanceof FormData;
       const id   = isForm ? payload.get('id') : payload.id;
       const data = isForm ? payload : (({ id: _, ...rest }) => rest)(payload);
+      if (isForm) {
+        // PHP no parsea multipart/form-data en PUT → method spoofing
+        data.append('_method', 'PUT');
+        return api.post(
+          `/clientes/${clienteId}/creador-plantillas/${id}`,
+          data,
+          { headers: { 'Content-Type': 'multipart/form-data' } },
+        ).then(r => r.data);
+      }
       return api.put(
         `/clientes/${clienteId}/creador-plantillas/${id}`,
         data,
-        isForm ? { headers: { 'Content-Type': 'multipart/form-data' } } : {},
       ).then(r => r.data);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['creador-plantillas', clienteId] }),

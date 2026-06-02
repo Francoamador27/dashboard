@@ -111,33 +111,20 @@ function toApiStorageUrl(url) {
   return url;
 }
 
-// Carga una imagen para canvas: blob/data URLs directas, storage URLs via fetch con auth
+// Carga una imagen para canvas sin fetch (evita CORS preflight)
 async function loadImageForCanvas(url) {
   if (!url) return null;
   const apiUrl = toApiStorageUrl(url);
   const isBlobOrData = url.startsWith('blob:') || url.startsWith('data:');
+  const src = isBlobOrData ? url : apiUrl;
 
-  if (isBlobOrData) {
-    return new Promise(resolve => {
-      const img = new Image();
-      img.onload = () => resolve(img);
-      img.onerror = () => resolve(null);
-      img.src = url;
-    });
-  }
-
-  // Storage: archivos públicos, fetch sin auth para evitar preflight CORS
-  try {
-    const resp = await fetch(apiUrl);
-    if (!resp.ok) return null;
-    const blobUrl = URL.createObjectURL(await resp.blob());
-    return new Promise(resolve => {
-      const img = new Image();
-      img.onload = () => { resolve(img); URL.revokeObjectURL(blobUrl); };
-      img.onerror = () => { URL.revokeObjectURL(blobUrl); resolve(null); };
-      img.src = blobUrl;
-    });
-  } catch { return null; }
+  return new Promise(resolve => {
+    const img = new Image();
+    if (!isBlobOrData) img.crossOrigin = 'anonymous';
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
 }
 
 // Genera un thumbnail JPEG a partir del estado del editor (máx 320px ancho)
@@ -152,8 +139,10 @@ async function generateThumbnail(formato, estadoEditor) {
   const thumb = document.createElement('canvas');
   thumb.width  = tw;
   thumb.height = th;
-  thumb.getContext('2d').drawImage(full, 0, 0, tw, th);
-  return new Promise(resolve => thumb.toBlob(resolve, 'image/jpeg', 0.82));
+  try {
+    thumb.getContext('2d').drawImage(full, 0, 0, tw, th);
+    return new Promise(resolve => thumb.toBlob(resolve, 'image/jpeg', 0.82));
+  } catch { return null; } // canvas tainted por CORS: guardar sin thumbnail
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -581,12 +570,16 @@ function MisPlantillasStep({ clienteId, formato, tipo, onNext, onBack }) {
                 {/* Thumbnail */}
                 <div className="w-full overflow-hidden rounded-t-xl bg-slate-100 dark:bg-white/[0.04]"
                   style={{ aspectRatio: TIPOS[p.formato] ? `${TIPOS[p.formato].w}/${TIPOS[p.formato].h}` : '1/1', maxHeight: 160 }}>
-                  {p.thumbnail_url
-                    ? <img src={imageUrl(p.thumbnail_url)} alt={p.nombre} className="w-full h-full object-cover" />
-                    : <div className="w-full h-full flex items-center justify-center text-slate-300 dark:text-white/10">
-                        <BookMarked size={20} />
-                      </div>
-                  }
+                  {(() => {
+                    const previewSrc = p.thumbnail_url
+                      ? imageUrl(p.thumbnail_url)
+                      : imageUrl(p.estado_editor?.templateConfig?.bgUrl);
+                    return previewSrc
+                      ? <img src={previewSrc} alt={p.nombre} className="w-full h-full object-cover" />
+                      : <div className="w-full h-full flex items-center justify-center text-slate-300 dark:text-white/10">
+                          <BookMarked size={20} />
+                        </div>;
+                  })()}
                 </div>
                 <div className="p-3 flex flex-col gap-1.5">
                   <p className="font-bold text-slate-800 dark:text-white text-sm truncate pr-6">{p.nombre}</p>
@@ -752,7 +745,7 @@ function LivePreview({ tipo, templateConfig, bloques, selectedId, onSelect, onMo
 }
 
 // ─── Step 4: Editor ───────────────────────────────────────────────────────────
-function EditorStep({ tipo, templateConfig: initConfig, bloques, setBloques, selectedId, setSelectedId, upd, onMove, onBack, handleDownload, generando, handleLightbox, onSaveNamed }) {
+function EditorStep({ tipo, templateConfig: initConfig, bloques, setBloques, selectedId, setSelectedId, upd, onMove, onBack, handleDownload, generando, handleLightbox, handleGuardarGaleria, guardando, guardadoOk, onSaveNamed }) {
   const [config, setConfig] = useState(initConfig);
   const updC = patch => setConfig(c => ({ ...c, ...patch }));
   const fileRef = useRef(null);
@@ -1199,6 +1192,8 @@ export default function CreadorContenido({ onClose, clienteId }) {
   const [bloques, setBloques]               = useState([]);
   const [selectedId, setSelectedId]         = useState(null);
   const [generando, setGenerando]           = useState(false);
+  const [guardando, setGuardando]           = useState(false);
+  const [guardadoOk, setGuardadoOk]         = useState(false);
   const [lightbox, setLightbox]             = useState(null);
   const [plantillaActivaId, setPlantillaActivaId] = useState(null);
   const [modalGuardar, setModalGuardar]     = useState(false);
@@ -1228,6 +1223,22 @@ export default function CreadorContenido({ onClose, clienteId }) {
         a.click(); URL.revokeObjectURL(url);
       }, 'image/png');
     } finally { setGenerando(false); }
+  };
+
+  const handleGuardarGaleria = async (state) => {
+    setGuardando(true);
+    try {
+      const canvas = document.createElement('canvas');
+      await renderToCanvas(canvas, state);
+      const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+      if (!blob) return;
+      const fd = new FormData();
+      fd.append('imagen', new File([blob], `creador-${Date.now()}.png`, { type: 'image/png' }));
+      fd.append('plataforma', state.tipo);
+      await api.post('/portal/assets', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      setGuardadoOk(true);
+      setTimeout(() => setGuardadoOk(false), 3000);
+    } catch { /* silencioso */ } finally { setGuardando(false); }
   };
 
   const handleLightbox = async (state) => {
@@ -1305,7 +1316,10 @@ export default function CreadorContenido({ onClose, clienteId }) {
           onBack={() => setStep(3)}
           handleDownload={handleDownload}
           handleLightbox={handleLightbox}
+          handleGuardarGaleria={handleGuardarGaleria}
           generando={generando}
+          guardando={guardando}
+          guardadoOk={guardadoOk}
           onSaveNamed={clienteId ? (cfg) => { setTplCfg(cfg); setModalGuardar(true); } : null}
         />
       )}
