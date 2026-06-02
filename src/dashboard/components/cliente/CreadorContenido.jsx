@@ -340,17 +340,34 @@ function Slider({ label, value, min=0, max=100, step=1, onChange, unit='' }) {
 
 function ColorRow({ label, value, onChange, alpha, onAlpha }) {
   const hasAlpha = alpha !== undefined && onAlpha;
+  const [hexInput, setHexInput] = useState(value);
+
+  useEffect(() => { setHexInput(value); }, [value]);
+
+  const handleHexChange = (e) => {
+    const raw = e.target.value;
+    setHexInput(raw);
+    const full = raw.startsWith('#') ? raw : '#' + raw;
+    if (/^#[0-9a-fA-F]{6}$/.test(full)) onChange(full);
+  };
+
   return (
     <div className="flex items-center gap-2">
       <span className="text-[11px] text-slate-400 dark:text-white/30 flex-1">{label}</span>
-      {/* Swatch con checkerboard para transparencia */}
       <div className="relative w-6 h-6 rounded border border-slate-200 dark:border-white/10 overflow-hidden flex-shrink-0 cursor-pointer"
         style={{ background: 'repeating-conic-gradient(#bbb 0% 25%, #fff 0% 50%) 0 0 / 6px 6px' }}>
         <div className="absolute inset-0" style={{ backgroundColor: value, opacity: hasAlpha ? (alpha / 100) : 1 }} />
         <input type="color" value={value} onChange={e => onChange(e.target.value)}
           className="absolute inset-0 opacity-0 w-full h-full cursor-pointer" />
       </div>
-      <span className="text-[10px] font-mono text-slate-300 dark:text-white/20 w-14">{value}</span>
+      <input
+        type="text"
+        value={hexInput}
+        onChange={handleHexChange}
+        onBlur={() => setHexInput(value)}
+        maxLength={7}
+        className="text-[10px] font-mono w-16 bg-transparent border border-slate-200 dark:border-white/10 rounded px-1 py-0.5 text-slate-500 dark:text-white/40 focus:outline-none focus:border-[#c9a84c]/60"
+      />
       {hasAlpha && (
         <>
           <input type="range" min={0} max={100} value={alpha}
