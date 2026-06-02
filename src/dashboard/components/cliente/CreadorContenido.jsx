@@ -104,19 +104,18 @@ function newBoton(extra = {}) { return { id: _uid++, ...DEFAULT_BOTON, ...extra 
 
 const API_BASE = (import.meta.env.VITE_API_URL ?? 'http://localhost:8000').replace(/\/+$/, '');
 
-function toApiStorageUrl(url) {
+function toProxyUrl(url) {
   if (!url || url.startsWith('blob:') || url.startsWith('data:')) return url;
-  const match = url.match(/\/storage\/.+/);
-  if (match) return `${API_BASE}${match[0]}`;
+  const match = url.match(/\/storage\/(.+)/);
+  if (match) return `${API_BASE}/api/portal/storage-proxy?path=${encodeURIComponent(match[1])}`;
   return url;
 }
 
-// Carga una imagen para canvas sin fetch (evita CORS preflight)
+// Carga una imagen para canvas via proxy (con CORS headers)
 async function loadImageForCanvas(url) {
   if (!url) return null;
-  const apiUrl = toApiStorageUrl(url);
   const isBlobOrData = url.startsWith('blob:') || url.startsWith('data:');
-  const src = isBlobOrData ? url : apiUrl;
+  const src = isBlobOrData ? url : toProxyUrl(url);
 
   return new Promise(resolve => {
     const img = new Image();
@@ -1054,11 +1053,18 @@ function EditorStep({ tipo, templateConfig: initConfig, bloques, setBloques, sel
         <p className="text-[11px] text-slate-400 dark:text-white/30 text-center">
           {TIPOS[tipo].label} · {TIPOS[tipo].w}×{TIPOS[tipo].h}px · Arrastrá los textos para moverlos
         </p>
-        <div className="flex gap-3">
+        <div className="flex gap-3 flex-wrap justify-center">
           <button onClick={() => handleLightbox(state)}
             className="flex items-center gap-1.5 text-xs px-4 py-2 rounded-xl border border-slate-200 dark:border-white/[0.10] text-slate-600 dark:text-white/60 hover:bg-white dark:hover:bg-white/[0.04] transition-all">
             <Eye size={13}/> Vista completa
           </button>
+          {handleGuardarGaleria && (
+            <button onClick={() => handleGuardarGaleria(state)} disabled={guardando || guardadoOk}
+              className="flex items-center gap-1.5 text-xs font-bold px-5 py-2 rounded-xl transition-all disabled:opacity-60 border border-[#c9a84c] text-[#c9a84c] hover:bg-[#c9a84c]/10">
+              {guardando ? <Loader2 size={13} className="animate-spin"/> : <CheckCircle2 size={13}/>}
+              {guardadoOk ? '¡Guardado!' : 'Guardar en galería'}
+            </button>
+          )}
           <button onClick={() => handleDownload(state)} disabled={generando}
             className="flex items-center gap-1.5 bg-[#c9a84c] hover:bg-[#d4b560] disabled:opacity-50 text-black text-xs font-bold px-5 py-2 rounded-xl transition-all">
             {generando ? <Loader2 size={13} className="animate-spin"/> : <Download size={13}/>}
