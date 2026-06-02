@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Users, Images, LayoutGrid, Activity } from "lucide-react";
 import api from "../lib/api";
+import { imageUrl } from "../hooks/useGaleria";
 
 function StatCard({ icon: Icon, label, value, color = "#c9a84c", delay = 0 }) {
   return (
@@ -95,7 +96,7 @@ export default function DashboardHome() {
               >
                 {asset.url && (
                   <img
-                    src={asset.url}
+                    src={imageUrl(asset.url)}
                     alt={asset.tipo}
                     className="w-full h-full object-cover"
                   />
