@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { useCliente } from '../hooks/useClientes';
+import { imageUrl } from '../hooks/useGaleria';
 import TabInfo from '../components/cliente/TabInfo';
 import TabNotas from '../components/cliente/TabNotas';
 import TabTickets from '../components/cliente/TabTickets';
@@ -26,11 +27,10 @@ const TABS = [
 ];
 
 function ClienteLogo({ cliente }) {
-  const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') ?? 'https://dashboard.test';
   if (cliente.logo_path) {
     return (
       <img
-        src={`${baseUrl}/storage/${cliente.logo_path}`}
+        src={imageUrl('/storage/' + cliente.logo_path)}
         alt={cliente.nombre}
         className="w-12 h-12 rounded-xl object-cover border border-slate-200 dark:border-white/10"
       />

@@ -10,6 +10,7 @@ import {
   useClientes, useCreateCliente, useUpdateCliente,
   useDeleteCliente, useUploadLogo,
 } from '../hooks/useClientes';
+import { imageUrl } from '../hooks/useGaleria';
 
 const TONOS = ['Elegante', 'Cercano', 'Técnico', 'Juvenil', 'Corporativo', 'Minimalista', 'Dinámico'];
 
@@ -21,12 +22,11 @@ const EMPTY_FORM = {
 // ─── Logo avatar ──────────────────────────────────────────────────────────────
 function ClienteLogo({ cliente, size = 'md' }) {
   const sizeClass = size === 'lg' ? 'w-16 h-16 text-xl' : 'w-10 h-10 text-sm';
-  const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') ?? 'https://dashboard.test';
 
   if (cliente.logo_path) {
     return (
       <img
-        src={`${baseUrl}/storage/${cliente.logo_path}`}
+        src={imageUrl('/storage/' + cliente.logo_path)}
         alt={cliente.nombre}
         className={`${sizeClass} rounded-xl object-cover border border-slate-200 dark:border-white/10 shrink-0`}
       />
