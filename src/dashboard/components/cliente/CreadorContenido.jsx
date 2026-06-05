@@ -1374,10 +1374,16 @@ function EditorStep({ tipo, templateConfig: initConfig, bloques, setBloques, sel
 }
 
 // ─── Modal: Guardar Plantilla ─────────────────────────────────────────────────
-function GuardarPlantillaModal({ clienteId, formato, tipo, bloques, templateConfig, plantillaActivaId, onSaved, onClose }) {
-  const [nombre,        setNombre]        = useState('');
-  const [modoActualizar, setModoActualizar] = useState(!!plantillaActivaId);
+function GuardarPlantillaModal({ clienteId, formato, tipo, bloques, templateConfig, plantillaActivaId, plantillaActivaNombre, onSaved, onClose }) {
+  const initActualizar = !!plantillaActivaId;
+  const [nombre,        setNombre]        = useState(initActualizar ? (plantillaActivaNombre ?? '') : '');
+  const [modoActualizar, setModoActualizar] = useState(initActualizar);
   const [error,         setError]         = useState('');
+
+  const handleModo = (actualizar) => {
+    setModoActualizar(actualizar);
+    setNombre(actualizar ? (plantillaActivaNombre ?? '') : '');
+  };
 
   const crear     = useCrearCreadorPlantilla(clienteId);
   const actualizar = useActualizarCreadorPlantilla(clienteId);
@@ -1424,7 +1430,7 @@ function GuardarPlantillaModal({ clienteId, formato, tipo, bloques, templateConf
       } else {
         res = await crear.mutateAsync(fd);
       }
-      onSaved(res.id);
+      onSaved(res.id, nombre.trim());
     } catch {
       setError('Ocurrió un error al guardar. Intentá de nuevo.');
     }
@@ -1460,11 +1466,11 @@ function GuardarPlantillaModal({ clienteId, formato, tipo, bloques, templateConf
         {plantillaActivaId && (
           <div className="flex flex-col gap-2">
             <label className="flex items-center gap-2.5 cursor-pointer">
-              <input type="radio" checked={modoActualizar} onChange={() => setModoActualizar(true)} className="accent-[#c9a84c]" />
+              <input type="radio" checked={modoActualizar} onChange={() => handleModo(true)} className="accent-[#c9a84c]" />
               <span className="text-sm text-slate-700 dark:text-white/70">Actualizar la plantilla actual</span>
             </label>
             <label className="flex items-center gap-2.5 cursor-pointer">
-              <input type="radio" checked={!modoActualizar} onChange={() => setModoActualizar(false)} className="accent-[#c9a84c]" />
+              <input type="radio" checked={!modoActualizar} onChange={() => handleModo(false)} className="accent-[#c9a84c]" />
               <span className="text-sm text-slate-700 dark:text-white/70">Guardar como nueva plantilla</span>
             </label>
           </div>
@@ -1540,7 +1546,8 @@ export default function CreadorContenido({ onClose, clienteId }) {
   const [guardando, setGuardando]           = useState(false);
   const [guardadoOk, setGuardadoOk]         = useState(false);
   const [lightbox, setLightbox]             = useState(null);
-  const [plantillaActivaId, setPlantillaActivaId] = useState(null);
+  const [plantillaActivaId,     setPlantillaActivaId]     = useState(null);
+  const [plantillaActivaNombre, setPlantillaActivaNombre] = useState('');
   const [modalGuardar, setModalGuardar]     = useState(false);
 
   // Cargar Google Fonts al montar
@@ -1597,6 +1604,7 @@ export default function CreadorContenido({ onClose, clienteId }) {
       setTplCfg({ ...rawCfg, bgUrl: rawCfg.bgUrl ? imageUrl(rawCfg.bgUrl) : rawCfg.bgUrl });
       setBloques(entry.estado_editor.bloques.map(b => ({ ...b, id: _uid++ })));
       setPlantillaActivaId(entry.id);
+      setPlantillaActivaNombre(entry.nombre ?? '');
     } else {
       setBloques(
         activePlantilla === 'editorial'
@@ -1678,7 +1686,8 @@ export default function CreadorContenido({ onClose, clienteId }) {
           bloques={bloques}
           templateConfig={templateConfig}
           plantillaActivaId={plantillaActivaId}
-          onSaved={(id) => { setPlantillaActivaId(id); setModalGuardar(false); }}
+          plantillaActivaNombre={plantillaActivaNombre}
+          onSaved={(id, nombre) => { setPlantillaActivaId(id); setPlantillaActivaNombre(nombre); setModalGuardar(false); }}
           onClose={() => setModalGuardar(false)}
         />
       )}
