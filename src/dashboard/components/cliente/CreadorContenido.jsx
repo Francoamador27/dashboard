@@ -23,10 +23,30 @@ const TIPOS = {
 };
 
 const GOOGLE_FONTS_URL =
-  'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700;900&family=DM+Sans:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@400;700;800;900&family=Poppins:wght@400;700;800;900&family=Nunito:wght@700;800;900&display=swap';
+  'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;700;900&family=DM+Sans:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@400;700;800;900&family=Poppins:wght@400;700;800;900&family=Nunito:wght@700;800;900&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap';
+
+// Promise que resuelve cuando el CSS de Google Fonts terminó de cargar
+let _gfontsReady = null;
+function ensureGFontsLoaded() {
+  if (_gfontsReady) return _gfontsReady;
+  _gfontsReady = new Promise(resolve => {
+    const id = 'creador-gfonts';
+    const existing = document.getElementById(id);
+    if (existing) { resolve(); return; }
+    const link = document.createElement('link');
+    link.id = id; link.rel = 'stylesheet'; link.href = GOOGLE_FONTS_URL;
+    link.onload  = resolve;
+    link.onerror = resolve;
+    document.head.appendChild(link);
+  });
+  return _gfontsReady;
+}
 
 const FONTS = [
   // ── Fuentes premium solicitadas ────────────────────────────────────────────
+  { value: '"Cormorant Garamond",Georgia,serif',                            label: 'Cormorant Garamond',    fontWeight: 400 },
+  { value: 'Inter,-apple-system,BlinkMacSystemFont,sans-serif',            label: 'Inter Medium',          fontWeight: 500 },
+  { value: 'Inter,-apple-system,BlinkMacSystemFont,sans-serif',            label: 'Inter Light',           fontWeight: 300 },
   { value: 'Montserrat,sans-serif',                                        label: 'Montserrat ExtraBold',  fontWeight: 800 },
   { value: 'Poppins,sans-serif',                                           label: 'Poppins ExtraBold',     fontWeight: 800 },
   { value: '"Gotham Bold","Gotham","Century Gothic","Trebuchet MS",sans-serif', label: 'Gotham Bold',      fontWeight: 700 },
@@ -53,11 +73,23 @@ const DEFAULT_BLOBS = [
   { id: 4, x: 90, y: 92, size: 35, color: '#00EEFF', opacity: 0.28 },
 ];
 
+const WEIGHTS = [
+  { value: 100, label: '100 — Thin' },
+  { value: 200, label: '200 — ExtraLight' },
+  { value: 300, label: '300 — Light' },
+  { value: 400, label: '400 — Regular' },
+  { value: 500, label: '500 — Medium' },
+  { value: 600, label: '600 — SemiBold' },
+  { value: 700, label: '700 — Bold' },
+  { value: 800, label: '800 — ExtraBold' },
+  { value: 900, label: '900 — Black' },
+];
+
 const DEFAULT_BLOQUE = {
   nombre: 'Texto',
   texto: '',
   font: 'Inter,-apple-system,BlinkMacSystemFont,sans-serif',
-  fontWeight: null,
+  fontWeight: 400,
   size: 64,
   color: '#000000',
   bold: false,
@@ -82,6 +114,9 @@ const DEFAULT_BLOQUE = {
   shadowBlur: 20,
   shadowX: 0,
   shadowY: 6,
+  strokeColor: null,
+  strokeWidth: 2,
+  strokeOnly: false,
 };
 
 let _uid = 20;
@@ -101,6 +136,21 @@ const DEFAULT_BOTON = {
 };
 function newBoton(extra = {}) { return { id: _uid++, ...DEFAULT_BOTON, ...extra }; }
 
+const DEFAULT_LINE = {
+  tipo: 'linea', nombre: 'Línea',
+  x: 10, y: 50, length: 80, thickness: 4,
+  color: '#111111', rotation: 0, visible: true,
+};
+function newLine(extra = {}) { return { id: _uid++, ...DEFAULT_LINE, ...extra }; }
+
+function drawCoverImage(ctx, img, d, posX = 50, posY = 50) {
+  const ir = img.width / img.height, cr = d.w / d.h;
+  let dw2, dh2, dx, dy;
+  const pX = posX / 100, pY = posY / 100;
+  if (ir > cr) { dh2 = d.h; dw2 = dh2 * ir; dx = (d.w - dw2) * pX; dy = 0; }
+  else { dw2 = d.w; dh2 = dw2 / ir; dx = 0; dy = (d.h - dh2) * pY; }
+  ctx.drawImage(img, dx, dy, dw2, dh2);
+}
 
 const API_BASE = (import.meta.env.VITE_API_URL ?? 'http://localhost:8000').replace(/\/+$/, '');
 
@@ -198,23 +248,60 @@ async function renderBlobsCanvas(ctx, blobs, dw, dh) {
 }
 
 async function renderToCanvas(canvas, { tipo, templateConfig, bloques }) {
+  // 1. Esperar que el CSS de Google Fonts esté cargado
+  await ensureGFontsLoaded();
+
+  // 2. Forzar descarga de cada fuente usada creando elementos DOM ocultos
+  //    (el browser solo descarga fuentes referenciadas en el DOM)
+  const families = [...new Set(bloques.map(b => b.font.split(',')[0].replace(/"/g, '').trim()))];
+  const sentinel = document.createElement('div');
+  sentinel.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0;pointer-events:none;';
+  bloques.forEach(b => {
+    const span = document.createElement('span');
+    const family = b.font.split(',')[0].replace(/"/g, '').trim();
+    span.style.cssText = `font-family:"${family}";font-weight:${b.fontWeight ?? 400};font-size:${b.size ?? 16}px;`;
+    span.textContent = 'A';
+    sentinel.appendChild(span);
+  });
+  document.body.appendChild(sentinel);
   await document.fonts.ready;
+  await Promise.all(
+    families.map(fam => document.fonts.load(`${400} 16px "${fam}"`).catch(() => null))
+  );
+  document.body.removeChild(sentinel);
   const d = TIPOS[tipo];
   canvas.width = d.w; canvas.height = d.h;
   const ctx = canvas.getContext('2d');
 
-  // ── Fondo base (imagen aplica a cualquier tipo de plantilla) ─────────────
-  if (templateConfig.bgUrl) {
-    const img = await loadImageForCanvas(templateConfig.bgUrl);
-    if (img) {
-      const ir = img.width/img.height, cr = d.w/d.h;
-      let dw2, dh2, dx, dy;
-      if (ir > cr) { dh2 = d.h; dw2 = dh2*ir; dx = (d.w-dw2)/2; dy = 0; }
-      else { dw2 = d.w; dh2 = dw2/ir; dx = 0; dy = (d.h-dh2)/2; }
-      ctx.drawImage(img, dx, dy, dw2, dh2);
-    } else {
-      ctx.fillStyle = '#111'; ctx.fillRect(0, 0, d.w, d.h);
+  // ── Fondo base ────────────────────────────────────────────────────────────
+  const bgPX = templateConfig.bgPositionX ?? 50;
+  const bgPY = templateConfig.bgPositionY ?? 50;
+  if (templateConfig.type === 'editorial') {
+    const splitY = d.h * (templateConfig.splitRatio ?? 0.42);
+    // Full photo as background — white section overlays on top
+    if (templateConfig.bgUrl) {
+      const img = await loadImageForCanvas(templateConfig.bgUrl);
+      if (img) { drawCoverImage(ctx, img, d, bgPX, bgPY); }
+      else { ctx.fillStyle = '#666'; ctx.fillRect(0, 0, d.w, d.h); }
+    } else { ctx.fillStyle = '#666'; ctx.fillRect(0, 0, d.w, d.h); }
+    if (splitY > 0) {
+      // White top section (with configurable opacity)
+      const topOp = (templateConfig.topOpacity ?? 100) / 100;
+      ctx.globalAlpha = topOp;
+      ctx.fillStyle = templateConfig.topColor ?? '#F5F4F0';
+      ctx.fillRect(0, 0, d.w, splitY);
+      ctx.globalAlpha = 1;
+      // Separator line
+      const lt = templateConfig.lineThickness ?? 3;
+      if (lt > 0) {
+        ctx.fillStyle = templateConfig.lineColor ?? '#111111';
+        ctx.fillRect(0, splitY, d.w, lt);
+      }
     }
+  } else if (templateConfig.bgUrl) {
+    const img = await loadImageForCanvas(templateConfig.bgUrl);
+    if (img) { drawCoverImage(ctx, img, d, bgPX, bgPY); }
+    else { ctx.fillStyle = '#111'; ctx.fillRect(0, 0, d.w, d.h); }
   } else if (templateConfig.type === 'gradiente') {
     ctx.fillStyle = templateConfig.bgColor || '#FFFFFF';
     ctx.fillRect(0, 0, d.w, d.h);
@@ -224,8 +311,14 @@ async function renderToCanvas(canvas, { tipo, templateConfig, bloques }) {
 
   // ── Overlay oscuro ────────────────────────────────────────────────────────
   if ((templateConfig.overlayOpacity || 0) > 0) {
-    ctx.fillStyle = hexAlpha('#000', templateConfig.overlayOpacity);
-    ctx.fillRect(0, 0, d.w, d.h);
+    if (templateConfig.type === 'editorial') {
+      const splitYOv = d.h * (templateConfig.splitRatio ?? 0.42);
+      ctx.fillStyle = hexAlpha('#000', templateConfig.overlayOpacity);
+      ctx.fillRect(0, splitYOv, d.w, d.h - splitYOv);
+    } else {
+      ctx.fillStyle = hexAlpha('#000', templateConfig.overlayOpacity);
+      ctx.fillRect(0, 0, d.w, d.h);
+    }
   }
 
   // ── Degradé inferior (plantilla sombreada) ────────────────────────────────
@@ -241,9 +334,29 @@ async function renderToCanvas(canvas, { tipo, templateConfig, bloques }) {
   // ── Manchas ───────────────────────────────────────────────────────────────
   await renderBlobsCanvas(ctx, templateConfig.blobs || [], d.w, d.h);
 
-  // Textos y botones
+  // Textos, botones y líneas
   for (const b of bloques) {
-    if (!b.visible || !b.texto.trim()) continue;
+    if (!b.visible) continue;
+
+    // ── Línea ─────────────────────────────────────────────────────────────
+    if (b.tipo === 'linea') {
+      const lx = (b.x / 100) * d.w, ly = (b.y / 100) * d.h;
+      const lw = ((b.length ?? 80) / 100) * d.w;
+      ctx.save();
+      ctx.translate(lx, ly);
+      ctx.rotate(((b.rotation ?? 0) * Math.PI) / 180);
+      ctx.strokeStyle = b.color;
+      ctx.lineWidth = b.thickness || 4;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(lw, 0);
+      ctx.stroke();
+      ctx.restore();
+      continue;
+    }
+
+    if (!b.texto?.trim()) continue;
     ctx.save();
     const canvasWeight = b.fontWeight ?? (b.bold ? 700 : 400);
     ctx.font = `${b.italic?'italic ':''} ${canvasWeight} ${b.size}px ${b.font}`;
@@ -299,8 +412,19 @@ async function renderToCanvas(canvas, { tipo, templateConfig, bloques }) {
       ctx.shadowOffsetY = b.shadowY;
     }
 
-    ctx.fillStyle = b.color;
-    lines.forEach((line, i) => { if (line) ctx.fillText(line, textX, y + i*lh); });
+    if (b.strokeColor) {
+      ctx.strokeStyle = b.strokeColor;
+      ctx.lineWidth = b.strokeWidth || 2;
+      ctx.lineJoin = 'round';
+      lines.forEach((line, i) => { if (line) ctx.strokeText(line, textX, y + i * lh); });
+      if (!b.strokeOnly) {
+        ctx.fillStyle = b.color;
+        lines.forEach((line, i) => { if (line) ctx.fillText(line, textX, y + i * lh); });
+      }
+    } else {
+      ctx.fillStyle = b.color;
+      lines.forEach((line, i) => { if (line) ctx.fillText(line, textX, y + i * lh); });
+    }
     ctx.restore();
   }
 }
@@ -434,6 +558,34 @@ function MiniPreviewImagen({ tipo }) {
   );
 }
 
+function MiniPreviewEditorial({ tipo }) {
+  const d = TIPOS[tipo];
+  return (
+    <div className="relative overflow-hidden rounded-xl w-full" style={{ aspectRatio: `${d.w}/${d.h}`, backgroundColor: '#555' }}>
+      {/* White top section */}
+      <div className="absolute left-0 right-0 top-0" style={{ height: '42%', backgroundColor: '#F5F4F0' }}>
+        <div className="absolute" style={{ top: '20%', left: '8%', right: '8%', display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ height: 1.5, width: '35%', backgroundColor: '#bbb', borderRadius: 99 }} />
+          <div style={{ height: 2.5, width: '65%', backgroundColor: '#555', borderRadius: 99 }} />
+          <div style={{ height: 1.5, width: '50%', backgroundColor: '#aaa', borderRadius: 99 }} />
+        </div>
+      </div>
+      {/* Separator line */}
+      <div className="absolute left-0 right-0" style={{ top: '42%', height: 2, backgroundColor: '#111' }} />
+      {/* Large stroke title crossing split */}
+      <div className="absolute" style={{ top: '35%', left: '3%', right: '3%' }}>
+        <span style={{ fontSize: 'clamp(11px,5.5cqw,18px)', fontWeight: 900, letterSpacing: '-0.5px', color: 'transparent', WebkitTextStroke: '1px #111', lineHeight: 1 }}>
+          EDITORIAL
+        </span>
+      </div>
+      {/* Location at bottom */}
+      <div className="absolute bottom-2 left-3">
+        <div style={{ height: 1.5, width: 30, backgroundColor: 'rgba(255,255,255,0.55)', borderRadius: 99 }} />
+      </div>
+    </div>
+  );
+}
+
 // ─── Step 1: Formato ──────────────────────────────────────────────────────────
 function FormatoStep({ onNext }) {
   const [sel, setSel] = useState(null);
@@ -472,15 +624,19 @@ function FormatoStep({ onNext }) {
 
 // ─── Step 2: Plantilla ────────────────────────────────────────────────────────
 const PLANTILLAS = [
-  { id: 'gradiente', nombre: 'Degradé Aurora', desc: 'Fondo blanco con manchas de color suaves y personalizables', Preview: MiniPreviewGradiente },
-  { id: 'imagen',   nombre: 'Plantilla Sombreada', desc: 'Fotografía de fondo con degradé oscuro en la parte inferior y manchas de color superpuestas', Preview: MiniPreviewImagen },
+  { id: 'gradiente', nombre: 'Degradé Aurora',     desc: 'Fondo blanco con manchas de color suaves y personalizables',                                       Preview: MiniPreviewGradiente  },
+  { id: 'imagen',    nombre: 'Plantilla Sombreada', desc: 'Fotografía de fondo con degradé oscuro en la parte inferior y manchas de color superpuestas',       Preview: MiniPreviewImagen     },
+  { id: 'editorial', nombre: 'Editorial Split',     desc: 'Zona blanca superior + fotografía inferior con título outline gigante cruzando la línea divisoria', Preview: MiniPreviewEditorial  },
 ];
 
 function initTemplateConfig(plantillaId) {
   if (plantillaId === 'gradiente') {
-    return { type: 'gradiente', bgColor: '#FFFFFF', bgUrl: null, overlayOpacity: 0, blobs: DEFAULT_BLOBS.map(b => ({ ...b })) };
+    return { type: 'gradiente', bgColor: '#FFFFFF', bgUrl: null, bgPositionX: 50, bgPositionY: 50, overlayOpacity: 0, blobs: DEFAULT_BLOBS.map(b => ({ ...b })) };
   }
-  return { type: 'imagen', bgUrl: null, overlayOpacity: 0.1, blobs: [] };
+  if (plantillaId === 'editorial') {
+    return { type: 'editorial', bgUrl: null, bgPositionX: 50, bgPositionY: 50, overlayOpacity: 0, splitRatio: 0.42, topColor: '#F5F4F0', topOpacity: 100, lineColor: '#111111', lineThickness: 3, blobs: [] };
+  }
+  return { type: 'imagen', bgUrl: null, bgPositionX: 50, bgPositionY: 50, overlayOpacity: 0.1, blobs: [] };
 }
 
 function PlantillaStep({ tipo, onNext, onBack }) {
@@ -491,7 +647,7 @@ function PlantillaStep({ tipo, onNext, onBack }) {
         <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Elegí una plantilla</h2>
         <p className="text-slate-400 dark:text-white/40 text-sm mt-1">El diseño base que vas a personalizar</p>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 w-full max-w-xl">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 w-full max-w-3xl">
         {PLANTILLAS.map(p => (
           <button key={p.id} onClick={() => setSel(p.id)}
             className={`rounded-2xl border-2 p-5 flex flex-col gap-4 text-left transition-all hover:scale-[1.02] ${sel===p.id ? 'border-[#c9a84c] bg-[#c9a84c]/[0.04]' : 'border-slate-200 dark:border-white/[0.08] hover:border-slate-300'}`}>
@@ -520,7 +676,7 @@ function PlantillaStep({ tipo, onNext, onBack }) {
 
 // ─── Step 3: Mis Plantillas ───────────────────────────────────────────────────
 const FORMATO_LABEL = { historia: 'Historia', feed: 'Feed 1:1', feed45: 'Feed 4:5', landscape: 'Landscape' };
-const TIPO_LABEL    = { gradiente: 'Degradé Aurora', imagen: 'Plantilla Sombreada' };
+const TIPO_LABEL    = { gradiente: 'Degradé Aurora', imagen: 'Plantilla Sombreada', editorial: 'Editorial Split' };
 
 function timeAgo(iso) {
   const diff = (Date.now() - new Date(iso)) / 1000;
@@ -613,7 +769,7 @@ function MisPlantillasStep({ clienteId, formato, tipo, onNext, onBack }) {
           className="flex items-center gap-2 px-6 py-2.5 rounded-xl border border-slate-200 dark:border-white/[0.10] text-slate-600 dark:text-white/60 text-sm font-medium hover:bg-slate-50 dark:hover:bg-white/[0.04] transition-all">
           <ArrowLeft size={14} /> Atrás
         </button>
-        <button onClick={() => onNext(null)}
+        <button onClick={() => onNext(null, tipo)}
           className="flex items-center gap-2 bg-[#c9a84c] hover:bg-[#d4b560] text-black font-bold px-8 py-2.5 rounded-xl transition-all text-sm">
           Empezar en blanco <ArrowRight size={16} />
         </button>
@@ -623,7 +779,7 @@ function MisPlantillasStep({ clienteId, formato, tipo, onNext, onBack }) {
 }
 
 // ─── Live Preview ─────────────────────────────────────────────────────────────
-function LivePreview({ tipo, templateConfig, bloques, selectedId, onSelect, onMove }) {
+function LivePreview({ tipo, templateConfig, bloques, selectedId, onSelect, onMove, onBgReposition }) {
   const d   = TIPOS[tipo];
   const MAX_H = 440;
   const ratio = d.w / d.h;
@@ -651,15 +807,40 @@ function LivePreview({ tipo, templateConfig, bloques, selectedId, onSelect, onMo
     window.addEventListener('mouseup', up);
   }, [onSelect, onMove]);
 
+  const isEditorial = templateConfig.type === 'editorial';
+  const bgPosX = templateConfig.bgPositionX ?? 50;
+  const bgPosY = templateConfig.bgPositionY ?? 50;
   const bgStyle = templateConfig.bgUrl
-    ? { backgroundImage: `url(${templateConfig.bgUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+    ? { backgroundImage: `url(${templateConfig.bgUrl})`, backgroundSize: 'cover', backgroundPosition: `${bgPosX}% ${bgPosY}%` }
     : templateConfig.type === 'gradiente'
       ? { backgroundColor: templateConfig.bgColor || '#FFFFFF' }
+      : isEditorial ? { backgroundColor: '#666' }
       : { backgroundColor: '#111' };
+
+  const startBgDrag = useCallback((e) => {
+    if (!templateConfig.bgUrl || !onBgReposition) return;
+    if (e.target !== container.current) return;
+    e.preventDefault();
+    const rect = container.current.getBoundingClientRect();
+    const startX = e.clientX, startY = e.clientY;
+    const startPX = templateConfig.bgPositionX ?? 50;
+    const startPY = templateConfig.bgPositionY ?? 50;
+    const move = (ev) => {
+      const dx = ev.clientX - startX, dy = ev.clientY - startY;
+      onBgReposition(
+        Math.max(0, Math.min(100, startPX - (dx / rect.width) * 100)),
+        Math.max(0, Math.min(100, startPY - (dy / rect.height) * 100)),
+      );
+    };
+    const up = () => { window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+  }, [templateConfig.bgUrl, templateConfig.bgPositionX, templateConfig.bgPositionY, onBgReposition]);
 
   return (
     <div ref={container} className="relative overflow-hidden rounded-2xl shadow-2xl select-none flex-shrink-0"
-      style={{ width: pW, height: pH, ...bgStyle }}
+      style={{ width: pW, height: pH, ...bgStyle, cursor: templateConfig.bgUrl ? 'grab' : 'default' }}
+      onMouseDown={startBgDrag}
       onClick={() => onSelect(null)}>
 
       {/* Overlay para imagen */}
@@ -672,17 +853,57 @@ function LivePreview({ tipo, templateConfig, bloques, selectedId, onSelect, onMo
         <div className="absolute bottom-0 left-0 right-0 pointer-events-none" style={{ height: '50%', background: 'linear-gradient(to bottom, transparent, rgba(0,0,0,0.72))' }} />
       )}
 
+      {/* Editorial split — zona blanca superior + línea divisoria */}
+      {isEditorial && (
+        <>
+          <div className="absolute left-0 right-0 top-0 pointer-events-none" style={{
+            height: `${(templateConfig.splitRatio ?? 0.42) * 100}%`,
+            backgroundColor: templateConfig.topColor ?? '#F5F4F0',
+            opacity: (templateConfig.topOpacity ?? 100) / 100,
+          }} />
+          <div className="absolute left-0 right-0 pointer-events-none" style={{
+            top: `${(templateConfig.splitRatio ?? 0.42) * 100}%`,
+            height: templateConfig.lineThickness ?? 3,
+            backgroundColor: templateConfig.lineColor ?? '#111111',
+          }} />
+          {(templateConfig.overlayOpacity || 0) > 0 && (
+            <div className="absolute left-0 right-0 bottom-0 pointer-events-none" style={{
+              top: `${(templateConfig.splitRatio ?? 0.42) * 100}%`,
+              background: `rgba(0,0,0,${templateConfig.overlayOpacity})`,
+            }} />
+          )}
+        </>
+      )}
+
       {/* Blobs */}
       <BlobsLayer blobs={templateConfig.blobs || []} />
 
-      {/* Textos y botones arrastrables */}
-      {bloques.filter(b => b.visible && b.texto.trim()).map(b => {
+      {/* Textos, botones y líneas arrastrables */}
+      {bloques.filter(b => b.visible && (b.tipo === 'linea' || b.texto?.trim())).map(b => {
         const isSel = b.id === selectedId;
         const selRing = isSel ? 'ring-1 ring-white/70 ring-offset-0' : '';
         const dragProps = {
           onMouseDown: e => startDrag(e, b),
           onClick: e => { e.stopPropagation(); onSelect(b.id); },
         };
+
+        // ── Línea ─────────────────────────────────────────────────────────
+        if (b.tipo === 'linea') {
+          return (
+            <div key={b.id}
+              className={`absolute cursor-move ${selRing}`}
+              style={{
+                left: `${b.x}%`, top: `${b.y}%`,
+                width: `${b.length ?? 80}%`,
+                height: Math.max(1, (b.thickness || 4) * scale),
+                backgroundColor: b.color,
+                transform: `rotate(${b.rotation ?? 0}deg)`,
+                transformOrigin: '0 50%',
+              }}
+              {...dragProps}
+            />
+          );
+        }
 
         if (b.tipo === 'boton') {
           return (
@@ -717,7 +938,7 @@ function LivePreview({ tipo, templateConfig, bloques, selectedId, onSelect, onMo
               left: `${b.x}%`, top: `${b.y}%`,
               width: `${b.maxWidthPct}%`,
               fontFamily: b.font, fontSize: b.size * scale,
-              color: b.color,
+              color: b.strokeColor && b.strokeOnly ? 'transparent' : b.color,
               fontWeight: b.fontWeight ?? (b.bold ? 'bold' : 'normal'),
               fontStyle: b.italic ? 'italic' : 'normal',
               lineHeight: b.lineHeight,
@@ -725,6 +946,7 @@ function LivePreview({ tipo, templateConfig, bloques, selectedId, onSelect, onMo
               textTransform: b.uppercase ? 'uppercase' : 'none',
               textAlign: b.textAlign,
               whiteSpace: 'pre-wrap', wordBreak: 'break-word',
+              ...(b.strokeColor ? { WebkitTextStroke: `${(b.strokeWidth || 2) * scale}px ${b.strokeColor}`, paintOrder: 'stroke fill' } : {}),
               ...(b.hasBg ? {
                 backgroundColor: hexAlpha(b.bgColor, b.bgOpacity),
                 borderRadius: b.bgBorderRadius * scale,
@@ -793,13 +1015,32 @@ function EditorStep({ tipo, templateConfig: initConfig, bloques, setBloques, sel
             )}
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={e => { const f=e.target.files?.[0]; if(f) updC({ bgUrl: URL.createObjectURL(f) }); }} />
           </div>
+          {/* Reposicionar imagen de fondo */}
+          {config.bgUrl && (
+            <div className="space-y-2">
+              <p className="text-[10px] text-slate-400 dark:text-white/30 italic">Arrastrá la imagen en el preview para reposicionarla, o usá los sliders:</p>
+              <Slider label="Posición X" value={Math.round(config.bgPositionX ?? 50)} min={0} max={100} onChange={v => updC({ bgPositionX: v })} unit="%" />
+              <Slider label="Posición Y" value={Math.round(config.bgPositionY ?? 50)} min={0} max={100} onChange={v => updC({ bgPositionY: v })} unit="%" />
+            </div>
+          )}
           {/* Color de fondo — solo Degradé Aurora sin imagen */}
           {config.type === 'gradiente' && !config.bgUrl && (
             <ColorRow label="Color de fondo" value={config.bgColor || '#FFFFFF'} onChange={v => updC({ bgColor: v })} />
           )}
-          {/* Overlay oscuro — cuando hay imagen o en plantilla sombreada */}
-          {(config.bgUrl || config.type === 'imagen') && (
+          {/* Overlay oscuro — cuando hay imagen o en plantilla sombreada (no editorial) */}
+          {(config.bgUrl || config.type === 'imagen') && config.type !== 'editorial' && (
             <Slider label="Overlay oscuro" value={Math.round((config.overlayOpacity||0)*100)} min={0} max={80} onChange={v => updC({ overlayOpacity: v/100 })} unit="%" />
+          )}
+          {/* Editorial Split — controles específicos */}
+          {config.type === 'editorial' && (
+            <>
+              <ColorRow label="Color zona superior" value={config.topColor ?? '#F5F4F0'} onChange={v => updC({ topColor: v })} />
+              <Slider label="Opacidad zona superior" value={config.topOpacity ?? 100} min={0} max={100} onChange={v => updC({ topOpacity: v })} unit="%" />
+              <Slider label="División superior" value={Math.round((config.splitRatio ?? 0.42) * 100)} min={0} max={70} onChange={v => updC({ splitRatio: v / 100 })} unit="%" />
+              <ColorRow label="Color línea divisoria" value={config.lineColor ?? '#111111'} onChange={v => updC({ lineColor: v })} />
+              <Slider label="Grosor línea" value={config.lineThickness ?? 3} min={0} max={20} onChange={v => updC({ lineThickness: v })} unit="px" />
+              <Slider label="Overlay zona foto" value={Math.round((config.overlayOpacity||0)*100)} min={0} max={80} onChange={v => updC({ overlayOpacity: v/100 })} unit="%" />
+            </>
           )}
         </Seccion>
 
@@ -833,6 +1074,9 @@ function EditorStep({ tipo, templateConfig: initConfig, bloques, setBloques, sel
               {b.tipo === 'boton' && (
                 <span className="text-[8px] font-black bg-[#c9a84c]/20 text-[#c9a84c] rounded px-1 py-0.5 uppercase tracking-wide flex-shrink-0">BTN</span>
               )}
+              {b.tipo === 'linea' && (
+                <span className="text-[8px] font-black bg-slate-200 dark:bg-white/10 text-slate-500 dark:text-white/40 rounded px-1 py-0.5 uppercase tracking-wide flex-shrink-0">LÍN</span>
+              )}
               <span className="flex-1 truncate">{b.nombre}</span>
               {b.texto && <span className="opacity-40 text-[10px] truncate max-w-[60px]">{b.texto.slice(0,15)}</span>}
               <button onClick={e=>{e.stopPropagation();upd(b.id,{visible:!b.visible});}} className="opacity-40 hover:opacity-100">
@@ -843,12 +1087,16 @@ function EditorStep({ tipo, templateConfig: initConfig, bloques, setBloques, sel
               </button>
             </div>
           ))}
-          <div className="flex gap-1.5 pt-0.5">
+          <div className="flex gap-1.5 pt-0.5 flex-wrap">
             <button onClick={addBloque} className="flex-1 flex items-center justify-center gap-1 text-xs text-[#c9a84c] hover:text-[#d4b560] border border-dashed border-[#c9a84c]/30 hover:border-[#c9a84c]/60 rounded-lg py-1.5 transition-all">
               <Plus size={11}/> Texto
             </button>
             <button onClick={addBotonBloque} className="flex-1 flex items-center justify-center gap-1 text-xs text-[#c9a84c] hover:text-[#d4b560] border border-dashed border-[#c9a84c]/30 hover:border-[#c9a84c]/60 rounded-lg py-1.5 transition-all">
               <Plus size={11}/> Botón
+            </button>
+            <button onClick={() => { const l = newLine(); setBloques(bs => [...bs, l]); setSelectedId(l.id); }}
+              className="flex-1 flex items-center justify-center gap-1 text-xs text-[#c9a84c] hover:text-[#d4b560] border border-dashed border-[#c9a84c]/30 hover:border-[#c9a84c]/60 rounded-lg py-1.5 transition-all">
+              <Plus size={11}/> Línea
             </button>
           </div>
         </Seccion>
@@ -902,9 +1150,15 @@ function EditorStep({ tipo, templateConfig: initConfig, bloques, setBloques, sel
               <div>
                 <label className="text-[11px] text-slate-400 dark:text-white/30 block mb-1">Fuente</label>
                 <select value={sel.font}
-                  onChange={e => { const p = FONTS.find(f=>f.value===e.target.value); upd(sel.id,{font:e.target.value,fontWeight:p?.fontWeight??null}); }}
-                  className={inputCls} style={{fontFamily:sel.font,fontWeight:sel.fontWeight??'normal'}}>
-                  {FONTS.map(f=><option key={f.value} value={f.value} style={{fontFamily:f.value,fontWeight:f.fontWeight??'normal'}}>{f.label}</option>)}
+                  onChange={e => { const p = FONTS.find(f=>f.value===e.target.value); upd(sel.id,{font:e.target.value,fontWeight:p?.fontWeight??400}); }}
+                  className={inputCls} style={{fontFamily:sel.font,fontWeight:sel.fontWeight??400}}>
+                  {FONTS.map(f=><option key={f.label} value={f.value} style={{fontFamily:f.value,fontWeight:f.fontWeight??400}}>{f.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-[11px] text-slate-400 dark:text-white/30 block mb-1">Peso</label>
+                <select value={sel.fontWeight ?? 400} onChange={e=>upd(sel.id,{fontWeight:Number(e.target.value)})} className={inputCls}>
+                  {WEIGHTS.map(w=><option key={w.value} value={w.value}>{w.label}</option>)}
                 </select>
               </div>
               <Slider label="Tamaño" value={sel.size} min={12} max={120} onChange={v=>upd(sel.id,{size:v})} unit="px"/>
@@ -941,19 +1195,22 @@ function EditorStep({ tipo, templateConfig: initConfig, bloques, setBloques, sel
               <select value={sel.font}
                 onChange={e => {
                   const picked = FONTS.find(f => f.value === e.target.value);
-                  upd(sel.id, { font: e.target.value, fontWeight: picked?.fontWeight ?? null });
+                  upd(sel.id, { font: e.target.value, fontWeight: picked?.fontWeight ?? 400 });
                 }}
                 className={inputCls}
-                style={{ fontFamily: sel.font, fontWeight: sel.fontWeight ?? 'normal' }}>
+                style={{ fontFamily: sel.font, fontWeight: sel.fontWeight ?? 400 }}>
                 {FONTS.map(f => (
-                  <option key={f.value} value={f.value} style={{ fontFamily: f.value, fontWeight: f.fontWeight ?? 'normal' }}>
+                  <option key={f.label} value={f.value} style={{ fontFamily: f.value, fontWeight: f.fontWeight ?? 400 }}>
                     {f.label}
                   </option>
                 ))}
               </select>
-              {sel.fontWeight && (
-                <p className="text-[10px] text-[#c9a84c] mt-0.5">Peso fijo: {sel.fontWeight} (ignorado el toggle Negrita)</p>
-              )}
+            </div>
+            <div>
+              <label className="text-[11px] text-slate-400 dark:text-white/30 block mb-1">Peso</label>
+              <select value={sel.fontWeight ?? 400} onChange={e=>upd(sel.id,{fontWeight:Number(e.target.value)})} className={inputCls}>
+                {WEIGHTS.map(w=><option key={w.value} value={w.value}>{w.label}</option>)}
+              </select>
             </div>
 
             {/* Alineado */}
@@ -1021,6 +1278,45 @@ function EditorStep({ tipo, templateConfig: initConfig, bloques, setBloques, sel
                 </>
               )}
             </div>
+
+            {/* Contorno (outline/stroke) */}
+            <div className="pt-1 border-t border-slate-100 dark:border-white/[0.05] space-y-2">
+              <label className="flex items-center gap-2 text-[11px] font-black text-slate-300 dark:text-white/20 uppercase tracking-wider cursor-pointer">
+                <input type="checkbox" checked={!!sel.strokeColor}
+                  onChange={e => upd(sel.id, { strokeColor: e.target.checked ? (sel.color || '#000000') : null })}
+                  className="accent-[#c9a84c]"/>
+                Contorno (outline)
+              </label>
+              {sel.strokeColor && (
+                <>
+                  <ColorRow label="Color contorno" value={sel.strokeColor} onChange={v=>upd(sel.id,{strokeColor:v})} />
+                  <Slider label="Grosor contorno" value={sel.strokeWidth ?? 2} min={1} max={20} onChange={v=>upd(sel.id,{strokeWidth:v})} unit="px"/>
+                  <label className="flex items-center gap-1.5 text-[11px] text-slate-400 dark:text-white/30 cursor-pointer">
+                    <input type="checkbox" checked={!!sel.strokeOnly} onChange={e=>upd(sel.id,{strokeOnly:e.target.checked})} className="accent-[#c9a84c]"/>
+                    Solo contorno (sin relleno)
+                  </label>
+                </>
+              )}
+            </div>
+          </Seccion>
+        )}
+
+        {/* ── Editor de línea seleccionada ─────────────────────────── */}
+        {sel && sel.tipo === 'linea' && (
+          <Seccion title={`— ${sel.nombre}`}>
+            <div>
+              <label className="text-[11px] text-slate-400 dark:text-white/30 block mb-1">Nombre</label>
+              <input value={sel.nombre} onChange={e=>upd(sel.id,{nombre:e.target.value})} className={inputCls}/>
+            </div>
+            <ColorRow label="Color" value={sel.color} onChange={v=>upd(sel.id,{color:v})} />
+            <Slider label="Grosor" value={sel.thickness ?? 4} min={1} max={50} onChange={v=>upd(sel.id,{thickness:v})} unit="px"/>
+            <Slider label="Largo" value={sel.length ?? 80} min={5} max={100} onChange={v=>upd(sel.id,{length:v})} unit="%"/>
+            <Slider label="Rotación" value={sel.rotation ?? 0} min={-180} max={180} onChange={v=>upd(sel.id,{rotation:v})} unit="°"/>
+            <div className="pt-1 border-t border-slate-100 dark:border-white/[0.05] space-y-2">
+              <p className="text-[10px] font-black text-slate-300 dark:text-white/20 uppercase tracking-wider">Posición (o arrastrá en el preview)</p>
+              <Slider label="Horizontal (X)" value={Math.round(sel.x)} min={0} max={90} onChange={v=>upd(sel.id,{x:v})} unit="%"/>
+              <Slider label="Vertical (Y)" value={Math.round(sel.y)} min={0} max={95} onChange={v=>upd(sel.id,{y:v})} unit="%"/>
+            </div>
           </Seccion>
         )}
 
@@ -1049,6 +1345,7 @@ function EditorStep({ tipo, templateConfig: initConfig, bloques, setBloques, sel
         <LivePreview
           tipo={tipo} templateConfig={config} bloques={bloques}
           selectedId={selectedId} onSelect={setSelectedId} onMove={onMove}
+          onBgReposition={(x, y) => updC({ bgPositionX: x, bgPositionY: y })}
         />
         <p className="text-[11px] text-slate-400 dark:text-white/30 text-center">
           {TIPOS[tipo].label} · {TIPOS[tipo].w}×{TIPOS[tipo].h}px · Arrastrá los textos para moverlos
@@ -1189,6 +1486,48 @@ function GuardarPlantillaModal({ clienteId, formato, tipo, bloques, templateConf
   );
 }
 
+function getDefaultBloquesEditorial() {
+  return [
+    newBloque({
+      nombre: 'Etiqueta',
+      texto: 'NUEVO INGRESO',
+      size: 30, fontWeight: 700, uppercase: true, letterSpacing: 8,
+      x: 8, y: 4, color: '#888888',
+    }),
+    newBloque({
+      nombre: 'Dirección',
+      texto: 'Av. del Libertador 1234',
+      size: 44, fontWeight: 700, bold: true, uppercase: true, letterSpacing: 3,
+      x: 8, y: 10, color: '#111111',
+    }),
+    newBloque({
+      nombre: 'Detalles',
+      texto: '3 amb · 78 m²  ·  Palermo',
+      size: 30, fontWeight: 400,
+      x: 8, y: 21, color: '#666666',
+    }),
+    newBloque({
+      nombre: 'Título principal',
+      texto: 'PALERMO',
+      size: 200, fontWeight: 900, uppercase: true, letterSpacing: -5,
+      x: 3, y: 32,
+      color: '#111111',
+      maxWidthPct: 95,
+      strokeColor: '#111111',
+      strokeWidth: 3,
+      strokeOnly: true,
+      textAlign: 'left',
+      font: '"Cormorant Garamond",Georgia,serif',
+    }),
+    newBloque({
+      nombre: 'Ubicación',
+      texto: '📍 Buenos Aires, Argentina',
+      size: 30, fontWeight: 400,
+      x: 8, y: 88, color: '#FFFFFF',
+    }),
+  ];
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function CreadorContenido({ onClose, clienteId }) {
   const [step, setStep]                     = useState(1);
@@ -1204,15 +1543,8 @@ export default function CreadorContenido({ onClose, clienteId }) {
   const [plantillaActivaId, setPlantillaActivaId] = useState(null);
   const [modalGuardar, setModalGuardar]     = useState(false);
 
-  // Cargar Google Fonts
-  useEffect(() => {
-    const id = 'creador-gfonts';
-    if (!document.getElementById(id)) {
-      const link = document.createElement('link');
-      link.id = id; link.rel = 'stylesheet'; link.href = GOOGLE_FONTS_URL;
-      document.head.appendChild(link);
-    }
-  }, []);
+  // Cargar Google Fonts al montar
+  useEffect(() => { ensureGFontsLoaded(); }, []);
 
   const upd    = useCallback((id, patch) => setBloques(bs => bs.map(b => b.id===id ? {...b,...patch} : b)), []);
   const onMove = useCallback((id, pos) => upd(id, pos), [upd]);
@@ -1237,14 +1569,17 @@ export default function CreadorContenido({ onClose, clienteId }) {
       const canvas = document.createElement('canvas');
       await renderToCanvas(canvas, state);
       const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
-      if (!blob) return;
+      if (!blob) throw new Error('No se pudo generar la imagen.');
       const fd = new FormData();
-      fd.append('imagen', new File([blob], `creador-${Date.now()}.png`, { type: 'image/png' }));
+      fd.append('archivos[]', new File([blob], `creador-${Date.now()}.png`, { type: 'image/png' }));
       fd.append('plataforma', state.tipo);
-      await api.post('/portal/assets', fd, { headers: { 'Content-Type': 'multipart/form-data' } });
+      await api.post(`/clientes/${clienteId}/assets/upload`, fd);
       setGuardadoOk(true);
       setTimeout(() => setGuardadoOk(false), 3000);
-    } catch { /* silencioso */ } finally { setGuardando(false); }
+    } catch (e) {
+      console.error('Error al guardar en galería:', e);
+      alert('No se pudo guardar: ' + (e.response?.data?.message ?? e.message ?? 'Error desconocido'));
+    } finally { setGuardando(false); }
   };
 
   const handleLightbox = async (state) => {
@@ -1256,17 +1591,21 @@ export default function CreadorContenido({ onClose, clienteId }) {
 
   const goStep2 = (t) => { setTipo(t); setStep(2); };
   const goStep3 = (p, cfg) => { setPlantilla(p); setTplCfg(cfg); setStep(3); };
-  const goStep4 = useCallback((entry) => {
+  const goStep4 = useCallback((entry, activePlantilla) => {
     if (entry?.estado_editor) {
       const rawCfg = entry.estado_editor.templateConfig;
       setTplCfg({ ...rawCfg, bgUrl: rawCfg.bgUrl ? imageUrl(rawCfg.bgUrl) : rawCfg.bgUrl });
       setBloques(entry.estado_editor.bloques.map(b => ({ ...b, id: _uid++ })));
       setPlantillaActivaId(entry.id);
     } else {
-      setBloques([
-        newBloque({ nombre: 'Título',      size: 80, bold: true, x: 8, y: 8,  color: '#000000' }),
-        newBloque({ nombre: 'Descripción', size: 42,             x: 8, y: 72, color: '#000000' }),
-      ]);
+      setBloques(
+        activePlantilla === 'editorial'
+          ? getDefaultBloquesEditorial()
+          : [
+              newBloque({ nombre: 'Título',      size: 80, bold: true, x: 8, y: 8,  color: '#000000' }),
+              newBloque({ nombre: 'Descripción', size: 42,             x: 8, y: 72, color: '#000000' }),
+            ]
+      );
       setPlantillaActivaId(null);
     }
     setStep(4);

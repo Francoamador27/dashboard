@@ -3,14 +3,18 @@ import api from "../lib/api";
 
 const BASE = import.meta.env.VITE_API_URL ?? "";
 
+const stripWww = (url) => url?.replace(/^(https?:\/\/)www\./, '$1') ?? url;
+
 export const imageUrl = (url) => {
   if (!url) return null;
   // Extraer el path /storage/... sin importar el dominio o prefijo (/api, etc.)
   const storageMatch = url.match(/\/storage\/.+/);
   if (storageMatch) return `${BASE}${storageMatch[0]}`;
-  if (url.startsWith("http")) return url;
+  if (url.startsWith("http")) return stripWww(url);
   return `${BASE}${url}`;
 };
+
+export { stripWww };
 
 export function useAssets(filters = {}) {
   const clean = Object.fromEntries(

@@ -1,4 +1,5 @@
 import axios from 'axios';
+import useAuthStore from '../store/authStore';
 
 const api = axios.create({
   baseURL: `${import.meta.env.VITE_API_URL ?? 'http://localhost:8000'}/api`,
@@ -27,13 +28,12 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Redirige al login si el token expira
+// Limpia auth si el token expira (sin recarga de página para evitar loops)
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('dashboard_token');
-      window.location.href = '/dashboard/login';
+      useAuthStore.getState().resetAuth();
     }
     return Promise.reject(error);
   }

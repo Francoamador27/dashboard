@@ -46,6 +46,11 @@ const useAuthStore = create(
       },
 
       setCliente: (cliente) => set({ cliente }),
+
+      resetAuth: () => {
+        localStorage.removeItem('dashboard_token');
+        set({ user: null, token: null, role: null, clienteId: null, cliente: null, isAuthenticated: false });
+      },
     }),
     {
       name: 'dashboard-auth',

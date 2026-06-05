@@ -30,6 +30,25 @@ function PasswordInput({ value, onChange, placeholder }) {
   );
 }
 
+function PasswordDisplay({ password }) {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="flex items-center gap-1.5 mt-1.5">
+      <KeyRound size={11} className="text-slate-300 dark:text-white/20 shrink-0" />
+      <span className="text-xs text-slate-500 dark:text-white/40 font-mono">
+        {show ? password : '••••••••'}
+      </span>
+      <button
+        type="button"
+        onClick={() => setShow(s => !s)}
+        className="text-slate-300 dark:text-white/20 hover:text-slate-500 dark:hover:text-white/50 transition-colors"
+      >
+        {show ? <EyeOff size={12} /> : <Eye size={12} />}
+      </button>
+    </div>
+  );
+}
+
 export default function TabAcceso({ cliente }) {
   const clienteId = cliente.id;
   const { data: usuario, isLoading } = useUsuarioCliente(clienteId);
@@ -115,6 +134,9 @@ export default function TabAcceso({ cliente }) {
                 <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 rounded-full px-2 py-0.5 mt-1">
                   Portal activo
                 </span>
+                {usuario.password_plain && (
+                  <PasswordDisplay password={usuario.password_plain} />
+                )}
               </>
             ) : (
               <>

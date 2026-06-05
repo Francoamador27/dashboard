@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import api from '../lib/api';
 import useAuthStore from '../store/authStore';
+import { stripWww } from '../hooks/useGaleria';
 
 function formatSize(bytes) {
   if (!bytes) return '';
@@ -146,7 +147,7 @@ export default function PortalArchivos() {
                 {/* Icono o thumb */}
                 <div className="w-10 h-10 rounded-xl bg-zinc-100 flex items-center justify-center flex-shrink-0 overflow-hidden">
                   {esImagen && a.url
-                    ? <img src={a.url} alt="" className="w-full h-full object-cover" />
+                    ? <img src={stripWww(a.url)} alt="" className="w-full h-full object-cover" />
                     : <FileIcon mime={a.mime_type} url={a.url_externa} />
                   }
                 </div>
@@ -172,7 +173,7 @@ export default function PortalArchivos() {
                       <ExternalLink size={12} /> Abrir
                     </a>
                   ) : (
-                    <a href={a.url} target="_blank" rel="noopener noreferrer"
+                    <a href={stripWww(a.url)} target="_blank" rel="noopener noreferrer"
                       className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg border border-zinc-200 text-zinc-600 hover:bg-zinc-100 transition-colors">
                       <Download size={12} /> Descargar
                     </a>
