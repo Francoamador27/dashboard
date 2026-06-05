@@ -13,6 +13,7 @@ import {
   useEliminarCreadorPlantilla,
 } from '../../hooks/useCreadorPlantillas';
 import { imageUrl } from '../../hooks/useGaleria';
+import api from '../../lib/api';
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
 const TIPOS = {
@@ -561,26 +562,39 @@ function MiniPreviewImagen({ tipo }) {
 function MiniPreviewEditorial({ tipo }) {
   const d = TIPOS[tipo];
   return (
-    <div className="relative overflow-hidden rounded-xl w-full" style={{ aspectRatio: `${d.w}/${d.h}`, backgroundColor: '#555' }}>
-      {/* White top section */}
-      <div className="absolute left-0 right-0 top-0" style={{ height: '42%', backgroundColor: '#F5F4F0' }}>
-        <div className="absolute" style={{ top: '20%', left: '8%', right: '8%', display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <div style={{ height: 1.5, width: '35%', backgroundColor: '#bbb', borderRadius: 99 }} />
-          <div style={{ height: 2.5, width: '65%', backgroundColor: '#555', borderRadius: 99 }} />
-          <div style={{ height: 1.5, width: '50%', backgroundColor: '#aaa', borderRadius: 99 }} />
+    <div className="relative overflow-hidden rounded-xl w-full" style={{ aspectRatio: `${d.w}/${d.h}`, background: 'linear-gradient(160deg,#c8c0b4 0%,#8a7f74 55%,#5c5147 100%)' }}>
+      {/* Logo mark squares — top left */}
+      <div className="absolute" style={{ top: '17%', left: '10%', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
+        {[0,1,2,3].map(i => <div key={i} style={{ width: 4, height: 4, border: '0.8px solid #1a1a1a', backgroundColor: i % 2 === 0 ? '#1a1a1a' : 'transparent' }} />)}
+      </div>
+      {/* Diagonal line from logo to address */}
+      <div className="absolute" style={{ top: '22%', left: '13%', width: '9%', height: 1, backgroundColor: '#1a1a1a', transform: 'rotate(42deg)', transformOrigin: '0 50%' }} />
+      {/* Address — bold */}
+      <div className="absolute" style={{ top: '31%', left: '10%', right: '10%' }}>
+        <div style={{ height: 2.5, width: '78%', backgroundColor: '#1a1a1a', borderRadius: 2 }} />
+      </div>
+      {/* Two-column detail rows */}
+      <div className="absolute" style={{ top: '38%', left: '10%', right: '10%', display: 'flex', gap: '8%' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ height: 1, width: '60%', backgroundColor: '#555', borderRadius: 99 }} />
+          <div style={{ height: 1.5, width: '90%', backgroundColor: '#555', borderRadius: 99 }} />
+        </div>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <div style={{ height: 1, width: '40%', backgroundColor: '#555', borderRadius: 99 }} />
+          <div style={{ height: 1.5, width: '60%', backgroundColor: '#555', borderRadius: 99 }} />
         </div>
       </div>
-      {/* Separator line */}
-      <div className="absolute left-0 right-0" style={{ top: '42%', height: 2, backgroundColor: '#111' }} />
-      {/* Large stroke title crossing split */}
-      <div className="absolute" style={{ top: '35%', left: '3%', right: '3%' }}>
-        <span style={{ fontSize: 'clamp(11px,5.5cqw,18px)', fontWeight: 900, letterSpacing: '-0.5px', color: 'transparent', WebkitTextStroke: '1px #111', lineHeight: 1 }}>
-          EDITORIAL
+      {/* Giant stroke-only title */}
+      <div className="absolute" style={{ top: '44%', left: '3%', right: '3%' }}>
+        <span style={{ fontSize: 'clamp(13px,6cqw,22px)', fontWeight: 900, letterSpacing: '-0.5px', color: 'transparent', WebkitTextStroke: '1px #1a1a1a', lineHeight: 1, fontFamily: 'Montserrat,sans-serif', display: 'block' }}>
+          TÍTULO
         </span>
       </div>
-      {/* Location at bottom */}
-      <div className="absolute bottom-2 left-3">
-        <div style={{ height: 1.5, width: 30, backgroundColor: 'rgba(255,255,255,0.55)', borderRadius: 99 }} />
+      {/* Photo texture — subtle dark gradient lower half */}
+      <div className="absolute left-0 right-0 bottom-0" style={{ height: '40%', background: 'linear-gradient(to bottom,transparent,rgba(0,0,0,0.35))' }} />
+      {/* Location pin — bottom center */}
+      <div className="absolute bottom-3 left-0 right-0 flex justify-center">
+        <div style={{ height: 1.5, width: 28, backgroundColor: 'rgba(255,255,255,0.7)', borderRadius: 99 }} />
       </div>
     </div>
   );
@@ -626,7 +640,7 @@ function FormatoStep({ onNext }) {
 const PLANTILLAS = [
   { id: 'gradiente', nombre: 'Degradé Aurora',     desc: 'Fondo blanco con manchas de color suaves y personalizables',                                       Preview: MiniPreviewGradiente  },
   { id: 'imagen',    nombre: 'Plantilla Sombreada', desc: 'Fotografía de fondo con degradé oscuro en la parte inferior y manchas de color superpuestas',       Preview: MiniPreviewImagen     },
-  { id: 'editorial', nombre: 'Editorial Split',     desc: 'Zona blanca superior + fotografía inferior con título outline gigante cruzando la línea divisoria', Preview: MiniPreviewEditorial  },
+  { id: 'editorial', nombre: 'Editorial Split',     desc: 'Foto full-bleed · logo, dirección bold, dos columnas de detalle y título outline gigante',         Preview: MiniPreviewEditorial  },
 ];
 
 function initTemplateConfig(plantillaId) {
@@ -634,7 +648,7 @@ function initTemplateConfig(plantillaId) {
     return { type: 'gradiente', bgColor: '#FFFFFF', bgUrl: null, bgPositionX: 50, bgPositionY: 50, overlayOpacity: 0, blobs: DEFAULT_BLOBS.map(b => ({ ...b })) };
   }
   if (plantillaId === 'editorial') {
-    return { type: 'editorial', bgUrl: null, bgPositionX: 50, bgPositionY: 50, overlayOpacity: 0, splitRatio: 0.42, topColor: '#F5F4F0', topOpacity: 100, lineColor: '#111111', lineThickness: 3, blobs: [] };
+    return { type: 'editorial', bgUrl: null, bgPositionX: 50, bgPositionY: 50, overlayOpacity: 0, splitRatio: 0, topColor: '#F5F4F0', topOpacity: 100, lineColor: '#111111', lineThickness: 3, blobs: [] };
   }
   return { type: 'imagen', bgUrl: null, bgPositionX: 50, bgPositionY: 50, overlayOpacity: 0.1, blobs: [] };
 }
@@ -1494,48 +1508,72 @@ function GuardarPlantillaModal({ clienteId, formato, tipo, bloques, templateConf
 
 function getDefaultBloquesEditorial() {
   return [
+    // Logo mark placeholder — top left
     newBloque({
-      nombre: 'Etiqueta',
-      texto: 'NUEVO INGRESO',
-      size: 30, fontWeight: 700, uppercase: true, letterSpacing: 8,
-      x: 8, y: 4, color: '#888888',
+      nombre: 'Logo / Marca',
+      texto: '▣ ▤\n▥ ▦',
+      size: 22, fontWeight: 400,
+      x: 10, y: 18, color: '#1a1a1a',
+      font: 'Inter,-apple-system,BlinkMacSystemFont,sans-serif',
+      textAlign: 'left', lineHeight: 1.2,
     }),
+    // Diagonal line connecting logo area to address
+    newLine({ nombre: 'Línea diagonal', x: 14, y: 23, length: 9, thickness: 1.5, color: '#1a1a1a', rotation: 42 }),
+    // Address — bold uppercase prominent
     newBloque({
       nombre: 'Dirección',
-      texto: 'Av. del Libertador 1234',
-      size: 44, fontWeight: 700, bold: true, uppercase: true, letterSpacing: 3,
-      x: 8, y: 10, color: '#111111',
+      texto: 'CALLE, CIUDAD, PAÍS',
+      size: 36, fontWeight: 800, uppercase: true, letterSpacing: 0,
+      x: 15, y: 32, color: '#1a1a1a',
+      font: 'Montserrat,sans-serif',
+      textAlign: 'left', maxWidthPct: 82,
     }),
+    // Left detail column: Style
     newBloque({
-      nombre: 'Detalles',
-      texto: '3 amb · 78 m²  ·  Palermo',
-      size: 30, fontWeight: 400,
-      x: 8, y: 21, color: '#666666',
+      nombre: 'Detalle izquierdo',
+      texto: 'ESTILO:\nModerno Mediterráneo',
+      size: 19, fontWeight: 400, lineHeight: 1.35,
+      x: 15, y: 40, color: '#444444',
+      font: 'Inter,-apple-system,BlinkMacSystemFont,sans-serif',
+      textAlign: 'left',
     }),
+    // Right detail column: Area
+    newBloque({
+      nombre: 'Detalle derecho',
+      texto: 'ÁREA:\n450 M²',
+      size: 19, fontWeight: 400, lineHeight: 1.35,
+      x: 55, y: 40, color: '#444444',
+      font: 'Inter,-apple-system,BlinkMacSystemFont,sans-serif',
+      textAlign: 'left',
+    }),
+    // Giant stroke-only title crossing the image
     newBloque({
       nombre: 'Título principal',
-      texto: 'PALERMO',
-      size: 200, fontWeight: 900, uppercase: true, letterSpacing: -5,
-      x: 3, y: 32,
-      color: '#111111',
-      maxWidthPct: 95,
-      strokeColor: '#111111',
+      texto: 'TÍTULO',
+      size: 185, fontWeight: 800, uppercase: true, letterSpacing: -2,
+      x: 3, y: 46,
+      color: '#1a1a1a',
+      maxWidthPct: 97,
+      strokeColor: '#1a1a1a',
       strokeWidth: 3,
       strokeOnly: true,
       textAlign: 'left',
-      font: '"Cormorant Garamond",Georgia,serif',
+      font: 'Montserrat,sans-serif',
     }),
+    // Location pin — bottom center
     newBloque({
       nombre: 'Ubicación',
-      texto: '📍 Buenos Aires, Argentina',
-      size: 30, fontWeight: 400,
-      x: 8, y: 88, color: '#FFFFFF',
+      texto: '◉ UBICACIÓN',
+      size: 26, fontWeight: 500, letterSpacing: 3, uppercase: true,
+      x: 30, y: 88, color: '#FFFFFF',
+      font: 'Inter,-apple-system,BlinkMacSystemFont,sans-serif',
+      textAlign: 'center',
     }),
   ];
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
-export default function CreadorContenido({ onClose, clienteId }) {
+export default function CreadorContenido({ onClose, clienteId, isPortal = false }) {
   const [step, setStep]                     = useState(1);
   const [tipo, setTipo]                     = useState(null);
   const [plantilla, setPlantilla]           = useState(null);
@@ -1577,10 +1615,16 @@ export default function CreadorContenido({ onClose, clienteId }) {
       await renderToCanvas(canvas, state);
       const blob = await new Promise(r => canvas.toBlob(r, 'image/png'));
       if (!blob) throw new Error('No se pudo generar la imagen.');
+      const file = new File([blob], `creador-${Date.now()}.png`, { type: 'image/png' });
       const fd = new FormData();
-      fd.append('archivos[]', new File([blob], `creador-${Date.now()}.png`, { type: 'image/png' }));
       fd.append('plataforma', state.tipo);
-      await api.post(`/clientes/${clienteId}/assets/upload`, fd);
+      if (isPortal) {
+        fd.append('imagen', file);
+        await api.post('/portal/assets', fd);
+      } else {
+        fd.append('archivos[]', file);
+        await api.post(`/clientes/${clienteId}/assets/upload`, fd);
+      }
       setGuardadoOk(true);
       setTimeout(() => setGuardadoOk(false), 3000);
     } catch (e) {

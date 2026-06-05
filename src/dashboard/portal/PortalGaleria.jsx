@@ -30,7 +30,7 @@ export default function PortalGaleria() {
   const assets = data?.data ?? [];
 
   return creadorOpen ? (
-    <CreadorContenido onClose={() => setCreadorOpen(false)} clienteId={clienteId} />
+    <CreadorContenido onClose={() => setCreadorOpen(false)} clienteId={clienteId} isPortal />
   ) : (
     <div className="p-6 md:p-8">
       <div className="flex items-start justify-between mb-6">
