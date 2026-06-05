@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { ImageIcon, Download, Loader2, X, Wand2 } from 'lucide-react';
 import api from '../lib/api';
 import useAuthStore from '../store/authStore';
+import { imageUrl } from '../hooks/useGaleria';
 import CreadorContenido from '../components/cliente/CreadorContenido';
 
 const PLATAFORMAS = ['todas', 'meta_feed', 'meta_story', 'google_display', 'highlight_cover'];
@@ -82,7 +83,7 @@ export default function PortalGaleria() {
               onClick={() => setPreview(asset)}
             >
               <img
-                src={asset.url}
+                src={imageUrl(asset.url)}
                 alt={asset.tipo}
                 className="w-full object-cover"
                 loading="lazy"
@@ -108,14 +109,14 @@ export default function PortalGaleria() {
             <X size={22} />
           </button>
           <img
-            src={preview.url}
+            src={imageUrl(preview.url)}
             className="max-h-[85vh] max-w-full rounded-xl object-contain"
             onClick={e => e.stopPropagation()}
             alt=""
           />
           <div className="absolute bottom-4 flex gap-3">
             <a
-              href={preview.url}
+              href={imageUrl(preview.url)}
               download
               target="_blank"
               rel="noopener noreferrer"

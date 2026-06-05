@@ -254,10 +254,11 @@ async function renderToCanvas(canvas, { tipo, templateConfig, bloques }) {
 
   // 2. Forzar descarga de cada fuente usada creando elementos DOM ocultos
   //    (el browser solo descarga fuentes referenciadas en el DOM)
-  const families = [...new Set(bloques.map(b => b.font.split(',')[0].replace(/"/g, '').trim()))];
+  const families = [...new Set(bloques.filter(b => b.font).map(b => b.font.split(',')[0].replace(/"/g, '').trim()))];
   const sentinel = document.createElement('div');
   sentinel.style.cssText = 'position:fixed;left:-9999px;top:-9999px;opacity:0;pointer-events:none;';
   bloques.forEach(b => {
+    if (!b.font) return;
     const span = document.createElement('span');
     const family = b.font.split(',')[0].replace(/"/g, '').trim();
     span.style.cssText = `font-family:"${family}";font-weight:${b.fontWeight ?? 400};font-size:${b.size ?? 16}px;`;
