@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Upload, X, FileText, Image, Loader2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Upload, X, FileText, Image, Loader2, AlertCircle, Link2, Plus } from 'lucide-react';
 import api from '../lib/api';
 import useAuthStore from '../store/authStore';
 
@@ -34,7 +34,12 @@ export default function PortalNuevoTicket() {
     descripcion: '',
   });
   const [archivos, setArchivos] = useState([]);
+  const [enlaces, setEnlaces] = useState([]);
   const [error, setError] = useState('');
+
+  const addEnlace = () => setEnlaces(p => [...p, '']);
+  const updateEnlace = (i, val) => setEnlaces(p => p.map((e, j) => j === i ? val : e));
+  const removeEnlace = (i) => setEnlaces(p => p.filter((_, j) => j !== i));
 
   const mutation = useMutation({
     mutationFn: async () => {
@@ -44,6 +49,7 @@ export default function PortalNuevoTicket() {
       fd.append('prioridad',   form.prioridad);
       fd.append('descripcion', form.descripcion);
       archivos.forEach(f => fd.append('adjuntos[]', f.file));
+      enlaces.filter(e => e.trim()).forEach(e => fd.append('enlaces[]', e.trim()));
 
       return api.post('/portal/tickets', fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -212,6 +218,36 @@ export default function PortalNuevoTicket() {
               ))}
             </div>
           )}
+        </Field>
+
+        {/* Links */}
+        <Field label="Links">
+          <div className="space-y-2">
+            {enlaces.map((url, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <div className="flex-1 flex items-center gap-2 border border-zinc-200 rounded-lg px-3 py-2 focus-within:ring-2 transition-all" style={{ '--tw-ring-color': accentColor + '40' }}>
+                  <Link2 size={13} className="text-zinc-400 flex-shrink-0" />
+                  <input
+                    type="url"
+                    value={url}
+                    onChange={e => updateEnlace(i, e.target.value)}
+                    placeholder="https://..."
+                    className="flex-1 text-sm text-zinc-900 outline-none bg-transparent"
+                  />
+                </div>
+                <button type="button" onClick={() => removeEnlace(i)} className="text-zinc-400 hover:text-red-500 transition-colors">
+                  <X size={15} />
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={addEnlace}
+              className="flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-700 transition-colors"
+            >
+              <Plus size={14} /> Agregar link
+            </button>
+          </div>
         </Field>
 
         {error && (

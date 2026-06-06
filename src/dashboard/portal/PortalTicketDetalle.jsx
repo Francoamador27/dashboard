@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Send, Paperclip, FileText, X, Loader2, CheckCircle2, Clock, AlertCircle, ExternalLink, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { ArrowLeft, Send, Paperclip, FileText, X, Loader2, CheckCircle2, Clock, AlertCircle, ExternalLink, ThumbsUp, ThumbsDown, Link2, Plus } from 'lucide-react';
 import { useState, useRef } from 'react';
 import api from '../lib/api';
 import useAuthStore from '../store/authStore';
@@ -22,7 +22,12 @@ export default function PortalTicketDetalle() {
 
   const [contenido, setContenido] = useState('');
   const [adjuntos, setAdjuntos] = useState([]);
+  const [enlaces, setEnlaces] = useState([]);
   const [error, setError] = useState('');
+
+  const addEnlace = () => setEnlaces(p => [...p, '']);
+  const updateEnlace = (i, val) => setEnlaces(p => p.map((e, j) => j === i ? val : e));
+  const removeEnlace = (i) => setEnlaces(p => p.filter((_, j) => j !== i));
 
   const { data: ticket, isLoading } = useQuery({
     queryKey: ['portal-ticket', id],
@@ -43,6 +48,7 @@ export default function PortalTicketDetalle() {
       const fd = new FormData();
       fd.append('contenido', contenido);
       adjuntos.forEach(f => fd.append('adjuntos[]', f.file));
+      enlaces.filter(e => e.trim()).forEach(e => fd.append('enlaces[]', e.trim()));
       return api.post(`/portal/tickets/${id}/comentarios`, fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
@@ -50,6 +56,7 @@ export default function PortalTicketDetalle() {
     onSuccess: () => {
       setContenido('');
       setAdjuntos([]);
+      setEnlaces([]);
       qc.invalidateQueries({ queryKey: ['portal-ticket', id] });
       qc.invalidateQueries({ queryKey: ['portal-tickets'] });
     },
@@ -127,6 +134,20 @@ export default function PortalTicketDetalle() {
         {/* Adjuntos del ticket (sin comentario) */}
         {ticket.adjuntos?.filter(a => !a.comentario_id).length > 0 && (
           <AdjuntosGrid adjuntos={ticket.adjuntos.filter(a => !a.comentario_id)} />
+        )}
+
+        {/* Links del ticket */}
+        {ticket.enlaces?.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {ticket.enlaces.map((url, i) => (
+              <a key={i} href={url} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg px-2.5 py-1.5 transition-colors">
+                <Link2 size={12} className="text-blue-500 flex-shrink-0" />
+                <span className="text-xs text-blue-700 max-w-[200px] truncate">{url}</span>
+                <ExternalLink size={10} className="text-blue-400 flex-shrink-0" />
+              </a>
+            ))}
+          </div>
         )}
       </div>
 
@@ -216,11 +237,34 @@ export default function PortalTicketDetalle() {
               </div>
             )}
 
+            {/* Links en la respuesta */}
+            {enlaces.length > 0 && (
+              <div className="space-y-2">
+                {enlaces.map((url, i) => (
+                  <div key={i} className="flex items-center gap-2">
+                    <div className="flex-1 flex items-center gap-2 border border-zinc-200 rounded-lg px-3 py-2">
+                      <Link2 size={13} className="text-zinc-400 flex-shrink-0" />
+                      <input
+                        type="url"
+                        value={url}
+                        onChange={e => updateEnlace(i, e.target.value)}
+                        placeholder="https://..."
+                        className="flex-1 text-sm text-zinc-900 outline-none bg-transparent"
+                      />
+                    </div>
+                    <button type="button" onClick={() => removeEnlace(i)} className="text-zinc-400 hover:text-red-500 transition-colors">
+                      <X size={14} />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {error && (
               <p className="text-red-600 text-sm bg-red-50 rounded-lg px-3 py-2">{error}</p>
             )}
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <button
                 type="submit"
                 disabled={mutation.isPending || !contenido.trim()}
@@ -237,6 +281,14 @@ export default function PortalTicketDetalle() {
               >
                 <Paperclip size={14} />
                 Adjuntar
+              </button>
+              <button
+                type="button"
+                onClick={addEnlace}
+                className="inline-flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-700 px-3 py-2.5 rounded-lg hover:bg-zinc-100 transition-colors"
+              >
+                <Link2 size={14} />
+                Link
               </button>
               <input
                 ref={fileRef}
@@ -299,9 +351,23 @@ function Comentario({ comentario, esPropio, accentColor }) {
         }`}>
           <p className="whitespace-pre-wrap">{comentario.contenido}</p>
         </div>
-        {comentario.adjuntos?.length > 0 && (
-          <div className="mt-2">
-            <AdjuntosGrid adjuntos={comentario.adjuntos} small />
+        {(comentario.adjuntos?.length > 0 || comentario.enlaces?.length > 0) && (
+          <div className="mt-2 space-y-1.5">
+            {comentario.adjuntos?.length > 0 && (
+              <AdjuntosGrid adjuntos={comentario.adjuntos} small />
+            )}
+            {comentario.enlaces?.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {comentario.enlaces.map((url, i) => (
+                  <a key={i} href={url} target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg px-2.5 py-1.5 transition-colors">
+                    <Link2 size={12} className="text-blue-500 flex-shrink-0" />
+                    <span className="text-xs text-blue-700 max-w-[180px] truncate">{url}</span>
+                    <ExternalLink size={10} className="text-blue-400 flex-shrink-0" />
+                  </a>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

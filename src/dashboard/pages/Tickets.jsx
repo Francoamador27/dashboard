@@ -5,7 +5,7 @@ import {
   Ticket, Plus, ChevronDown, Filter, Loader2, Send, Paperclip,
   FileText, X, ExternalLink, Clock, CheckCircle2, AlertCircle,
   Circle, MessageSquare, CalendarClock, ArrowUpRight, Trash2,
-  TriangleAlert, ThumbsUp, ThumbsDown, Hourglass,
+  TriangleAlert, ThumbsUp, ThumbsDown, Hourglass, Link2,
 } from 'lucide-react';
 import { useTicketsAll, useCrearComentario, useEliminarComentario } from '../hooks/useTickets';
 import { useCrearTicket, useActualizarTicket, useEliminarTicket, useTicketDetalle } from '../hooks/useClienteDetalle';
@@ -144,10 +144,38 @@ function TicketThread({ ticket, clienteId }) {
   };
 
   const comentarios = detalle?.comentarios ?? [];
+  const ticketAdjuntos = detalle?.adjuntos?.filter(a => !a.comentario_id) ?? [];
+  const ticketEnlaces  = detalle?.enlaces ?? [];
   const cerrado = ['resuelto', 'cerrado'].includes(ticket.estado);
 
   return (
     <div className="border-t border-slate-100 dark:border-white/[0.05] pt-4 mt-1 space-y-4">
+
+      {/* Adjuntos y links originales del cliente */}
+      {!isLoading && (ticketAdjuntos.length > 0 || ticketEnlaces.length > 0) && (
+        <div className="space-y-2">
+          <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400 dark:text-white/30">Adjuntos del cliente</p>
+          <div className="flex flex-wrap gap-1.5">
+            {ticketAdjuntos.map(a => (
+              <a key={a.id} href={a.url} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-1 bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] rounded-lg px-2 py-1 text-xs text-slate-600 dark:text-white/60 hover:bg-slate-100 dark:hover:bg-white/[0.08] transition-colors">
+                {a.tipo_mime?.startsWith('image/') ? <img src={a.url} className="w-6 h-6 object-cover rounded" alt="" /> : <FileText size={11} />}
+                <span className="max-w-[100px] truncate">{a.nombre_original}</span>
+                <ExternalLink size={9} />
+              </a>
+            ))}
+            {ticketEnlaces.map((url, i) => (
+              <a key={i} href={url} target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-1.5 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-lg px-2 py-1 text-xs text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors">
+                <Link2 size={11} />
+                <span className="max-w-[160px] truncate">{url}</span>
+                <ExternalLink size={9} />
+              </a>
+            ))}
+          </div>
+        </div>
+      )}
+
       {isLoading ? (
         <div className="flex items-center gap-2 text-slate-400 dark:text-white/30 text-sm py-2">
           <Loader2 size={13} className="animate-spin" /> Cargando conversación…
@@ -189,13 +217,21 @@ function TicketThread({ ticket, clienteId }) {
                     </button>
                   )}
                 </div>
-                {c.adjuntos?.length > 0 && (
+                {(c.adjuntos?.length > 0 || c.enlaces?.length > 0) && (
                   <div className="flex flex-wrap gap-1.5 mt-1.5">
-                    {c.adjuntos.map(a => (
+                    {c.adjuntos?.map(a => (
                       <a key={a.id} href={a.url} target="_blank" rel="noopener noreferrer"
                         className="flex items-center gap-1 bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] rounded-lg px-2 py-1 text-xs text-slate-600 dark:text-white/60 hover:bg-slate-100 dark:hover:bg-white/[0.08] transition-colors">
                         {a.tipo_mime?.startsWith('image/') ? <img src={a.url} className="w-6 h-6 object-cover rounded" alt="" /> : <FileText size={11} />}
                         <span className="max-w-[80px] truncate">{a.nombre_original}</span>
+                        <ExternalLink size={9} />
+                      </a>
+                    ))}
+                    {c.enlaces?.map((url, i) => (
+                      <a key={i} href={url} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 rounded-lg px-2 py-1 text-xs text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-500/20 transition-colors">
+                        <Link2 size={11} />
+                        <span className="max-w-[120px] truncate">{url}</span>
                         <ExternalLink size={9} />
                       </a>
                     ))}
