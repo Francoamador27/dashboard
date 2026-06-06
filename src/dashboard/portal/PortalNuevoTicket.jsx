@@ -49,7 +49,10 @@ export default function PortalNuevoTicket() {
       fd.append('prioridad',   form.prioridad);
       fd.append('descripcion', form.descripcion);
       archivos.forEach(f => fd.append('adjuntos[]', f.file));
-      enlaces.filter(e => e.trim()).forEach(e => fd.append('enlaces[]', e.trim()));
+      enlaces
+        .map(e => { const v = e.trim(); return v && !v.startsWith('http') ? 'https://' + v : v; })
+        .filter(Boolean)
+        .forEach(e => fd.append('enlaces[]', e));
 
       return api.post('/portal/tickets', fd, {
         headers: { 'Content-Type': 'multipart/form-data' },
@@ -228,7 +231,7 @@ export default function PortalNuevoTicket() {
                 <div className="flex-1 flex items-center gap-2 border border-zinc-200 rounded-lg px-3 py-2 focus-within:ring-2 transition-all" style={{ '--tw-ring-color': accentColor + '40' }}>
                   <Link2 size={13} className="text-zinc-400 flex-shrink-0" />
                   <input
-                    type="url"
+                    type="text"
                     value={url}
                     onChange={e => updateEnlace(i, e.target.value)}
                     placeholder="https://..."
