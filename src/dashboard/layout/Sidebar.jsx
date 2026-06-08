@@ -14,6 +14,7 @@ import {
   Activity,
   Ticket,
   CreditCard,
+  Receipt,
 } from "lucide-react";
 import useAuthStore from "../store/authStore";
 import useThemeStore from "../store/themeStore";
@@ -34,6 +35,7 @@ const navItems = [
   { to: "/dashboard/monitor", label: "Monitor", icon: Activity, live: true },
   { to: "/dashboard/colecciones", label: "Colecciones", icon: FolderOpen },
   { to: "/dashboard/suscripciones", label: "Suscripciones", icon: CreditCard },
+  { to: "/dashboard/facturacion",   label: "Facturación",   icon: Receipt },
   { to: "/dashboard/configuracion", label: "Configuración", icon: Settings },
 ];
 

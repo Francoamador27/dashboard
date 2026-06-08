@@ -19,6 +19,7 @@ const DashboardBrandDna = lazy(() => import("./dashboard/pages/BrandDna"));
 const DashboardMonitor = lazy(() => import("./dashboard/pages/Monitor"));
 const DashboardTickets = lazy(() => import("./dashboard/pages/Tickets"));
 const DashboardSuscripciones = lazy(() => import("./dashboard/pages/Suscripciones"));
+const DashboardFacturacion = lazy(() => import("./dashboard/pages/Facturacion"));
 const ClienteDetalle = lazy(() => import("./dashboard/pages/ClienteDetalle"));
 
 // ─── Portal de Cliente ────────────────────────────────────────────────────────
@@ -296,6 +297,7 @@ const router = createBrowserRouter([
           { path: "colecciones", element: suspense(<DashboardColecciones />) },
           { path: "monitor", element: suspense(<DashboardMonitor />) },
           { path: "suscripciones", element: suspense(<DashboardSuscripciones />) },
+          { path: "facturacion",   element: suspense(<DashboardFacturacion />) },
           { path: "configuracion", element: suspense(<DashboardConfiguracion />) },
         ],
       },

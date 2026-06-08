@@ -1,7 +1,10 @@
 import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Loader2, TrendingUp, Clock, AlertTriangle, FileText, Upload, Download, Trash2, X, ExternalLink } from 'lucide-react';
+import { Plus, Loader2, TrendingUp, Clock, AlertTriangle, FileText, Upload, Download, Trash2, X, ExternalLink, Receipt, Mail } from 'lucide-react';
 import { usePagos, useCrearPago, useActualizarPago, useEliminarPago, useArchivos, useSubirArchivo, useEliminarArchivo } from '../../hooks/useClienteDetalle';
+import { useFacturasByCliente, useDescargarPdfFactura } from '../../hooks/useFacturasAfip';
+import ModalEmitirFactura from '../facturacion/ModalEmitirFactura';
+import ModalEnviarFactura from '../facturacion/ModalEnviarFactura';
 
 const METODOS = ['Transferencia','Efectivo','Tarjeta','MercadoPago','PayPal','Otro'];
 const TIPOS_PAGO = ['mensualidad','ticket_extra','proyecto','otro'];
@@ -130,18 +133,28 @@ function ArchivoRow({ archivo, clienteId }) {
   );
 }
 
+const ESTADO_FACTURA = {
+  emitida:  { label: 'Emitida',  cls: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20' },
+  pendiente:{ label: 'Pendiente',cls: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20' },
+  error:    { label: 'Error',    cls: 'bg-red-50 dark:bg-red-500/10 text-red-500 border border-red-200 dark:border-red-500/20' },
+};
+
 export default function TabFacturacion({ clienteId, cliente }) {
   const { data, isLoading } = usePagos(clienteId);
   const { data: archivos } = useArchivos(clienteId);
+  const { data: facturas = [] } = useFacturasByCliente(clienteId);
   const crear = useCrearPago(clienteId);
   const actualizar = useActualizarPago(clienteId);
   const eliminar = useEliminarPago(clienteId);
   const subirArchivo = useSubirArchivo(clienteId);
   const eliminarArchivo = useEliminarArchivo(clienteId);
+  const descargarPdf = useDescargarPdfFactura();
   const fileRef = useRef();
 
   const [creando, setCreando] = useState(false);
   const [categoriaArchivo, setCategoriaArchivo] = useState('facturacion');
+  const [modalEmitir, setModalEmitir] = useState(false);
+  const [facturaEnvio, setFacturaEnvio] = useState(null);
 
   const pagos = data?.pagos ?? [];
   const resumen = data?.resumen ?? {};
@@ -154,6 +167,21 @@ export default function TabFacturacion({ clienteId, cliente }) {
   };
 
   return (
+    <>
+    {modalEmitir && (
+      <ModalEmitirFactura
+        cliente={cliente}
+        onClose={() => setModalEmitir(false)}
+        onEmitida={() => {}}
+      />
+    )}
+    {facturaEnvio && (
+      <ModalEnviarFactura
+        factura={facturaEnvio}
+        cliente={cliente}
+        onClose={() => setFacturaEnvio(null)}
+      />
+    )}
     <div className="max-w-2xl space-y-6">
       {/* Resumen */}
       <div className="grid grid-cols-3 gap-3">
@@ -264,6 +292,71 @@ export default function TabFacturacion({ clienteId, cliente }) {
           </div>
         )}
       </div>
+
+      {/* Facturas AFIP */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Receipt size={14} className="text-[#c9a84c]" />
+            <h3 className="text-slate-700 dark:text-white/70 text-sm font-semibold">Facturas AFIP / ARCA</h3>
+          </div>
+          <button
+            onClick={() => setModalEmitir(true)}
+            className="flex items-center gap-1.5 bg-[#c9a84c] hover:bg-[#d4b560] text-black text-xs font-semibold rounded-lg px-3 py-2 transition-all"
+          >
+            <Plus size={13} /> Emitir factura
+          </button>
+        </div>
+
+        {facturas.length === 0 ? (
+          <div className="border border-dashed border-slate-200 dark:border-white/[0.08] rounded-2xl p-10 text-center">
+            <Receipt size={24} className="mx-auto mb-2 text-slate-200 dark:text-white/10" />
+            <p className="text-slate-300 dark:text-white/20 text-sm">Sin facturas emitidas.</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {facturas.map(f => (
+              <div key={f.id} className="bg-white dark:bg-white/[0.03] border border-slate-100 dark:border-white/[0.06] rounded-xl px-4 py-3 flex items-center gap-3 shadow-sm dark:shadow-none group">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-slate-800 dark:text-white/80">
+                    {f.tipo_label ?? (f.tipo_comprobante === 1 ? 'Factura A' : f.tipo_comprobante === 6 ? 'Factura B' : 'Factura C')}
+                    {' '}N° {f.numero_formateado ?? f.id}
+                  </p>
+                  <p className="text-xs text-slate-400 dark:text-white/30">
+                    {f.empresa?.nombre} · {f.fecha_emision ? new Date(f.fecha_emision).toLocaleDateString('es-AR') : '—'}
+                    {f.cae && ` · CAE: ${f.cae}`}
+                  </p>
+                </div>
+                <span className="text-sm font-bold text-slate-900 dark:text-white">
+                  ARS ${Number(f.importe_total).toLocaleString('es-AR', { minimumFractionDigits: 2 })}
+                </span>
+                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${ESTADO_FACTURA[f.estado]?.cls ?? ''}`}>
+                  {ESTADO_FACTURA[f.estado]?.label ?? f.estado}
+                </span>
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button
+                    onClick={() => descargarPdf.mutate({ facturaId: f.id, nombre: `Factura-${f.id}.pdf` })}
+                    className="p-1.5 rounded-lg text-slate-400 dark:text-white/40 hover:text-slate-700 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/[0.06] transition-all"
+                    title="Descargar PDF"
+                  >
+                    <Download size={13} />
+                  </button>
+                  {f.estado === 'emitida' && (
+                    <button
+                      onClick={() => setFacturaEnvio(f)}
+                      className="p-1.5 rounded-lg text-slate-400 dark:text-white/40 hover:text-[#c9a84c] hover:bg-[#c9a84c]/10 transition-all"
+                      title="Enviar por email"
+                    >
+                      <Mail size={13} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
+    </>
   );
 }

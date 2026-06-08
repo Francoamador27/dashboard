@@ -163,7 +163,7 @@ export default function TabRecursos({ clienteId }) {
                       <ExternalLink size={13} /> Abrir
                     </a>
                   ) : (
-                    <a href={`${import.meta.env.VITE_API_URL}/clientes/${clienteId}/archivos/${a.id}/download`}
+                    <a href={a.url}
                       target="_blank" rel="noopener noreferrer"
                       className="flex items-center gap-1 text-xs text-slate-400 dark:text-white/30 hover:text-[#c9a84c] transition-colors">
                       <Download size={13} /> Descargar
