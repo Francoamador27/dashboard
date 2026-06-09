@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   FolderOpen, FileText, Image, Download, Loader2, Plus, Link2,
   Upload, X, Trash2, ExternalLink, File, FileSpreadsheet, Archive,
-  User, ShieldCheck,
+  User, ShieldCheck, ZoomIn,
 } from 'lucide-react';
 import { useArchivos, useSubirArchivo, useEliminarArchivo } from '../../hooks/useClienteDetalle';
 
@@ -14,14 +14,14 @@ function formatSize(bytes) {
   return (bytes / 1024 / 1024).toFixed(1) + ' MB';
 }
 
-function FileIcon({ mime, urlExterna }) {
-  if (!mime && urlExterna) return <Link2 size={16} className="text-blue-500" />;
-  if (mime?.startsWith('image/'))    return <Image size={16} className="text-violet-500" />;
-  if (mime === 'application/pdf')    return <FileText size={16} className="text-red-500" />;
+function FileIcon({ mime, urlExterna, size = 24 }) {
+  if (!mime && urlExterna) return <Link2 size={size} className="text-blue-400" />;
+  if (mime?.startsWith('image/'))    return <Image size={size} className="text-violet-400" />;
+  if (mime === 'application/pdf')    return <FileText size={size} className="text-red-400" />;
   if (mime?.includes('spreadsheet') || mime?.includes('excel'))
-                                     return <FileSpreadsheet size={16} className="text-emerald-500" />;
-  if (mime?.includes('zip'))         return <Archive size={16} className="text-amber-500" />;
-  return <File size={16} className="text-slate-400" />;
+                                     return <FileSpreadsheet size={size} className="text-emerald-400" />;
+  if (mime?.includes('zip'))         return <Archive size={size} className="text-amber-400" />;
+  return <File size={size} className="text-slate-400" />;
 }
 
 const inputCls = 'w-full bg-slate-50 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white placeholder-slate-300 dark:placeholder-white/20 outline-none focus:border-[#c9a84c]/60 focus:ring-1 focus:ring-[#c9a84c]/20 transition-all';
@@ -29,20 +29,21 @@ const inputCls = 'w-full bg-slate-50 dark:bg-white/[0.04] border border-slate-20
 export default function TabRecursos({ clienteId }) {
   const fileRef = useRef(null);
   const { data: archivos = [], isLoading } = useArchivos(clienteId);
-  const subir   = useSubirArchivo(clienteId);
+  const subir    = useSubirArchivo(clienteId);
   const eliminar = useEliminarArchivo(clienteId);
 
-  const [filtro, setFiltro] = useState('todos');      // 'todos' | 'admin' | 'cliente'
-  const [modal, setModal]   = useState(false);
-  const [modo, setModo]     = useState('archivo');    // 'archivo' | 'link'
-  const [form, setForm]     = useState({ nombre: '', descripcion: '', url_externa: '' });
-  const [archivo, setArchivo] = useState(null);
+  const [filtro,   setFiltro]   = useState('todos');
+  const [modal,    setModal]    = useState(false);
+  const [modo,     setModo]     = useState('archivo');
+  const [form,     setForm]     = useState({ nombre: '', descripcion: '', url_externa: '' });
+  const [archivo,  setArchivo]  = useState(null);
+  const [lightbox, setLightbox] = useState(null); // archivo object
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const lista = archivos.filter(a =>
-    filtro === 'todos'    ? true :
-    filtro === 'cliente'  ? a.subido_por === 'cliente' :
-                            a.subido_por === 'admin' || !a.subido_por
+    filtro === 'todos'   ? true :
+    filtro === 'cliente' ? a.subido_por === 'cliente' :
+                           a.subido_por === 'admin' || !a.subido_por
   );
 
   const clienteCount = archivos.filter(a => a.subido_por === 'cliente').length;
@@ -75,7 +76,7 @@ export default function TabRecursos({ clienteId }) {
     }`;
 
   return (
-    <div className="max-w-2xl space-y-5">
+    <div className="max-w-3xl space-y-5">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -103,7 +104,7 @@ export default function TabRecursos({ clienteId }) {
         <button onClick={() => setFiltro('cliente')} className={chipCls('cliente')}><User size={10} className="inline mr-1" />Del cliente</button>
       </div>
 
-      {/* Lista */}
+      {/* Grid de cards */}
       {isLoading ? (
         <div className="flex items-center gap-2 text-slate-400 dark:text-white/30">
           <Loader2 size={14} className="animate-spin" /><span className="text-sm">Cargando…</span>
@@ -116,73 +117,162 @@ export default function TabRecursos({ clienteId }) {
           </p>
         </div>
       ) : (
-        <div className="space-y-2">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {lista.map(a => {
-            const esImagen   = a.mime_type?.startsWith('image/');
-            const esLink     = !!a.url_externa;
-            const esCliente  = a.subido_por === 'cliente';
+            const esImagen  = a.mime_type?.startsWith('image/');
+            const esLink    = !!a.url_externa;
+            const esCliente = a.subido_por === 'cliente';
+            const url       = a.url?.replace('://www.', '://');
+
             return (
-              <div key={a.id} className={`flex items-center gap-3 bg-white dark:bg-white/[0.03] border rounded-xl px-4 py-3 group transition-colors hover:bg-slate-50 dark:hover:bg-white/[0.04] ${
-                esCliente
-                  ? 'border-blue-100 dark:border-blue-500/20'
-                  : 'border-slate-100 dark:border-white/[0.06]'
-              }`}>
-                {/* Thumb / icono */}
-                <div className="w-9 h-9 rounded-lg bg-slate-100 dark:bg-white/[0.05] flex items-center justify-center flex-shrink-0 overflow-hidden">
-                  {esImagen && a.url
-                    ? <img src={a.url} alt="" className="w-full h-full object-cover" />
-                    : <FileIcon mime={a.mime_type} urlExterna={a.url_externa} />
-                  }
-                </div>
-
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-slate-800 dark:text-white/90 truncate">{a.nombre}</p>
-                    {esCliente && (
-                      <span className="text-[10px] bg-blue-50 dark:bg-blue-500/10 text-blue-500 dark:text-blue-400 border border-blue-200 dark:border-blue-500/20 rounded-full px-1.5 py-0.5 flex-shrink-0 flex items-center gap-1">
-                        <User size={8} /> cliente
-                      </span>
-                    )}
-                  </div>
-                  {a.descripcion && (
-                    <p className="text-xs text-slate-400 dark:text-white/30 truncate">{a.descripcion}</p>
-                  )}
-                  <p className="text-xs text-slate-300 dark:text-white/20">
-                    {esLink ? 'Enlace' : (a.mime_type ?? 'Archivo')}
-                    {a.size_bytes ? ` · ${formatSize(a.size_bytes)}` : ''}
-                    {' · '}{new Date(a.created_at).toLocaleDateString('es-AR')}
-                  </p>
-                </div>
-
-                {/* Acciones */}
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {esLink ? (
-                    <a href={a.url_externa} target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-xs text-slate-400 dark:text-white/30 hover:text-blue-500 transition-colors">
-                      <ExternalLink size={13} /> Abrir
-                    </a>
+              <motion.div
+                key={a.id}
+                layout
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className={`group relative flex flex-col bg-white dark:bg-white/[0.03] border rounded-2xl overflow-hidden transition-colors hover:bg-slate-50 dark:hover:bg-white/[0.05] ${
+                  esCliente
+                    ? 'border-blue-100 dark:border-blue-500/20'
+                    : 'border-slate-100 dark:border-white/[0.07]'
+                }`}
+              >
+                {/* Thumbnail / preview area */}
+                <div className="relative w-full aspect-[4/3] bg-slate-50 dark:bg-white/[0.03] flex items-center justify-center overflow-hidden">
+                  {esImagen && url ? (
+                    <>
+                      <img src={url} alt={a.nombre} className="w-full h-full object-cover" />
+                      {/* hover overlay */}
+                      <button
+                        onClick={() => setLightbox(a)}
+                        className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center"
+                      >
+                        <ZoomIn size={22} className="text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow" />
+                      </button>
+                    </>
                   ) : (
-                    <a href={a.url}
-                      target="_blank" rel="noopener noreferrer"
-                      className="flex items-center gap-1 text-xs text-slate-400 dark:text-white/30 hover:text-[#c9a84c] transition-colors">
-                      <Download size={13} /> Descargar
-                    </a>
+                    <FileIcon mime={a.mime_type} urlExterna={a.url_externa} size={32} />
                   )}
+
+                  {/* Badge cliente */}
+                  {esCliente && (
+                    <span className="absolute top-2 left-2 text-[9px] bg-blue-500/90 text-white rounded-full px-1.5 py-0.5 flex items-center gap-0.5 font-medium">
+                      <User size={7} /> cliente
+                    </span>
+                  )}
+
+                  {/* Botón eliminar */}
                   <button
                     onClick={() => { if (confirm('¿Eliminar este archivo?')) eliminar.mutate(a.id); }}
-                    className="text-slate-200 dark:text-white/10 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                    className="absolute top-2 right-2 p-1 bg-black/40 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/80"
                   >
-                    <Trash2 size={14} />
+                    <Trash2 size={11} />
                   </button>
                 </div>
-              </div>
+
+                {/* Info + acciones */}
+                <div className="flex flex-col gap-1 px-3 py-2.5">
+                  <p className="text-xs font-semibold text-slate-800 dark:text-white/90 truncate leading-tight">{a.nombre}</p>
+                  {a.descripcion && (
+                    <p className="text-[10px] text-slate-400 dark:text-white/30 truncate">{a.descripcion}</p>
+                  )}
+                  <p className="text-[10px] text-slate-300 dark:text-white/20 leading-tight">
+                    {esLink ? 'Enlace' : (a.mime_type ?? 'Archivo')}
+                    {a.size_bytes ? ` · ${formatSize(a.size_bytes)}` : ''}
+                  </p>
+
+                  {/* Acción */}
+                  <div className="mt-1">
+                    {esLink ? (
+                      <a
+                        href={a.url_externa} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-[11px] text-blue-500 hover:text-blue-600 font-medium transition-colors"
+                      >
+                        <ExternalLink size={11} /> Abrir enlace
+                      </a>
+                    ) : (
+                      <a
+                        href={url}
+                        download={a.nombre_original ?? a.nombre}
+                        target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-1 text-[11px] text-slate-400 dark:text-white/30 hover:text-[#c9a84c] font-medium transition-colors"
+                      >
+                        <Download size={11} /> Descargar
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </motion.div>
             );
           })}
         </div>
       )}
 
-      {/* Modal subir */}
+      {/* ── Lightbox ── */}
+      <AnimatePresence>
+        {lightbox && (
+          <motion.div
+            key="lightbox"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center p-4"
+            onClick={() => setLightbox(null)}
+          >
+            {/* Backdrop */}
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-md" />
+
+            {/* Toolbar */}
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="relative z-10 flex items-center justify-between w-full max-w-4xl mb-3 px-1"
+              onClick={e => e.stopPropagation()}
+            >
+              <p className="text-white/70 text-sm font-medium truncate max-w-xs">{lightbox.nombre}</p>
+              <div className="flex items-center gap-2">
+                <a
+                  href={lightbox.url?.replace('://www.', '://')}
+                  download={lightbox.nombre_original ?? lightbox.nombre}
+                  target="_blank" rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 bg-[#c9a84c] hover:bg-[#d4b560] text-black text-xs font-semibold rounded-lg px-3 py-2 transition-all"
+                  onClick={e => e.stopPropagation()}
+                >
+                  <Download size={13} /> Descargar
+                </a>
+                <button
+                  onClick={() => setLightbox(null)}
+                  className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </motion.div>
+
+            {/* Imagen */}
+            <motion.img
+              key={lightbox.id}
+              initial={{ opacity: 0, scale: 0.94 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.94 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 28 }}
+              src={lightbox.url?.replace('://www.', '://')}
+              alt={lightbox.nombre}
+              className="relative z-10 max-w-full max-h-[78vh] object-contain rounded-xl shadow-2xl"
+              onClick={e => e.stopPropagation()}
+            />
+
+            {/* Meta */}
+            {lightbox.size_bytes && (
+              <p className="relative z-10 mt-3 text-xs text-white/30">
+                {formatSize(lightbox.size_bytes)}
+              </p>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Modal subir ── */}
       <AnimatePresence>
         {modal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -198,7 +288,6 @@ export default function TabRecursos({ clienteId }) {
                 <button onClick={resetModal} className="text-slate-400 dark:text-white/30 hover:text-slate-600 dark:hover:text-white"><X size={16} /></button>
               </div>
 
-              {/* Modo */}
               <div className="flex gap-1 p-1 bg-slate-100 dark:bg-white/[0.05] rounded-xl">
                 {['archivo','link'].map(m => (
                   <button key={m} onClick={() => setModo(m)}
