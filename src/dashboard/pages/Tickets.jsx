@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -318,8 +318,9 @@ function TicketThread({ ticket, clienteId }) {
 function TicketCard({ ticket, clientes }) {
   const [expandido, setExpandido] = useState(false);
   const [editandoEstado, setEditandoEstado] = useState(false);
-  const actualizar = useActualizarTicket(ticket.cliente_id);
-  const eliminar   = useEliminarTicket(ticket.cliente_id);
+  const actualizar  = useActualizarTicket(ticket.cliente_id);
+  const eliminar    = useEliminarTicket(ticket.cliente_id);
+  const panelRef    = useRef(null);
 
   const prio     = PRIORIDAD[ticket.prioridad] ?? PRIORIDAD.baja;
   const est      = ESTADO[ticket.estado]       ?? ESTADO.pendiente;
@@ -335,7 +336,7 @@ function TicketCard({ ticket, clientes }) {
   };
 
   return (
-    <div className={`bg-white dark:bg-white/[0.02] border border-slate-100 dark:border-white/[0.05] rounded-xl overflow-hidden border-l-4 ${prio.border} shadow-sm dark:shadow-none`}>
+    <div className={`bg-white dark:bg-white/[0.02] border border-slate-100 dark:border-white/[0.05] rounded-xl border-l-4 ${prio.border} shadow-sm dark:shadow-none`}>
       {/* Fila principal */}
       <div
         className="flex items-center gap-3 px-4 py-3.5 cursor-pointer hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors"
@@ -392,8 +393,17 @@ function TicketCard({ ticket, clientes }) {
       <AnimatePresence>
         {expandido && (
           <motion.div
-            initial={{ height: 0 }} animate={{ height: 'auto' }} exit={{ height: 0 }}
-            className="overflow-hidden"
+            ref={panelRef}
+            initial={{ height: 0 }}
+            animate={{ height: 'auto' }}
+            exit={{ height: 0 }}
+            style={{ overflow: 'hidden' }}
+            onAnimationStart={() => {
+              if (panelRef.current) panelRef.current.style.overflow = 'hidden';
+            }}
+            onAnimationComplete={() => {
+              if (panelRef.current && expandido) panelRef.current.style.overflow = 'visible';
+            }}
           >
             <div className="px-4 pb-4 space-y-3 border-t border-slate-100 dark:border-white/[0.05] pt-3">
               {/* Descripción */}
@@ -494,7 +504,7 @@ function Stat({ label, value, cls }) {
 
 // ── Página principal ──────────────────────────────────────────────────────────
 export default function Tickets() {
-  const [estadoFiltro, setEstadoFiltro]   = useState('');
+  const [estadoFiltro, setEstadoFiltro]   = useState('pendiente');
   const [clienteFiltro, setClienteFiltro] = useState('');
   const [prioFiltro, setPrioFiltro]       = useState('');
   const [sort, setSort]                   = useState('urgencia');
