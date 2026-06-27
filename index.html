@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="es" translate="no">
 
 <head>
   <meta charset="UTF-8" />
@@ -32,6 +32,16 @@
 </head>
 
 <body>
+  <!-- GTM noscript: fuera del árbol React para evitar conflictos de DOM -->
+  <noscript>
+    <iframe
+      src="https://www.googletagmanager.com/ns.html?id=GTM-XXXXXXX"
+      height="0"
+      width="0"
+      style="display:none;visibility:hidden"
+      title="gtm"
+    ></iframe>
+  </noscript>
 
   <div id="root"></div>
   <script type="module" src="/src/main.jsx"></script>
