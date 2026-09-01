@@ -3,9 +3,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Save, Eye, EyeOff, CheckCircle2, AlertCircle, Loader2, RefreshCw,
-  CreditCard, Server, Mail, Lock, User, Send, Sparkles, Zap,
+  CreditCard, Server, Mail, Lock, User, Send, Sparkles, Zap, KeyRound, ShieldCheck,
 } from 'lucide-react';
 import api from '../lib/api';
+import useAuthStore from '../store/authStore';
 import { useMPStatus } from '../hooks/useMercadoPago';
 
 // ── Providers IA ──────────────────────────────────────────────────────────────
@@ -486,11 +487,123 @@ function TabCorreo() {
   );
 }
 
+// ── Tab Cuenta (cambio de contraseña) ────────────────────────────────────────
+function PasswordField({ label, value, onChange, placeholder, autoComplete }) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <Field label={label}>
+      <div className="flex">
+        <div className="relative flex-1">
+          <Lock size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 dark:text-white/20 pointer-events-none" />
+          <input
+            type={visible ? 'text' : 'password'}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder={placeholder}
+            autoComplete={autoComplete}
+            className={`${inputCls} pl-8 rounded-r-none`}
+          />
+        </div>
+        <button type="button" onClick={() => setVisible(v => !v)}
+          className="px-3 border border-l-0 border-slate-200 dark:border-white/[0.08] rounded-r-lg text-slate-400 dark:text-white/30 hover:text-slate-600 dark:hover:text-white transition-colors bg-slate-50 dark:bg-white/[0.04]">
+          {visible ? <EyeOff size={14} /> : <Eye size={14} />}
+        </button>
+      </div>
+    </Field>
+  );
+}
+
+function TabCuenta() {
+  const user = useAuthStore(s => s.user);
+  const [form, setForm] = useState({ current_password: '', password: '', password_confirmation: '' });
+  const [saving, setSaving] = useState(false);
+  const [msg, setMsg] = useState(null);
+  const [err, setErr] = useState(null);
+
+  const set = (key) => (val) => setForm(f => ({ ...f, [key]: val }));
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setMsg(null); setErr(null);
+
+    if (!form.current_password)                 return setErr('Ingresá tu contraseña actual.');
+    if (form.password.length < 8)              return setErr('La nueva contraseña debe tener al menos 8 caracteres.');
+    if (!/[a-zA-Z]/.test(form.password) || !/[0-9]/.test(form.password))
+      return setErr('La nueva contraseña debe incluir letras y números.');
+    if (form.password === form.current_password) return setErr('La nueva contraseña debe ser distinta a la actual.');
+    if (form.password !== form.password_confirmation) return setErr('La confirmación no coincide con la nueva contraseña.');
+
+    setSaving(true);
+    try {
+      const { data } = await api.put('/password', form);
+      setMsg(data.message ?? 'Contraseña actualizada correctamente.');
+      setForm({ current_password: '', password: '', password_confirmation: '' });
+    } catch (e2) {
+      const resp = e2?.response?.data;
+      setErr(resp?.errors ? Object.values(resp.errors).flat()[0] : (resp?.message ?? 'No se pudo actualizar la contraseña.'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-5">
+      <section className={sectionCls}>
+        <p className="text-slate-500 dark:text-white/60 text-xs font-semibold uppercase tracking-wider flex items-center gap-2">
+          <ShieldCheck size={12} /> Cambiar contraseña
+        </p>
+        {user?.email && (
+          <p className="text-xs text-slate-400 dark:text-white/30 -mt-1">
+            Cuenta: <span className="text-slate-500 dark:text-white/50">{user.email}</span>
+          </p>
+        )}
+
+        <InlineAlert type="error"   msg={err} />
+        <InlineAlert type="success" msg={msg} />
+
+        <PasswordField
+          label="Contraseña actual"
+          value={form.current_password}
+          onChange={set('current_password')}
+          placeholder="Tu contraseña actual"
+          autoComplete="current-password"
+        />
+        <div className="grid grid-cols-2 gap-3">
+          <PasswordField
+            label="Nueva contraseña"
+            value={form.password}
+            onChange={set('password')}
+            placeholder="Mínimo 8 caracteres"
+            autoComplete="new-password"
+          />
+          <PasswordField
+            label="Repetir nueva contraseña"
+            value={form.password_confirmation}
+            onChange={set('password_confirmation')}
+            placeholder="Repetí la nueva contraseña"
+            autoComplete="new-password"
+          />
+        </div>
+        <p className="text-xs text-slate-400 dark:text-white/30">
+          Al cambiarla se cerrarán las demás sesiones abiertas. Esta sesión seguirá activa.
+        </p>
+
+        <button type="submit" disabled={saving}
+          className="flex items-center gap-2 bg-[#c9a84c] hover:bg-[#d4b560] disabled:opacity-50 text-black text-sm font-semibold rounded-lg px-5 py-2.5 transition-all">
+          {saving ? <Loader2 size={14} className="animate-spin" /> : <KeyRound size={14} />}
+          {saving ? 'Guardando…' : 'Actualizar contraseña'}
+        </button>
+      </section>
+    </form>
+  );
+}
+
 // ── Página principal ──────────────────────────────────────────────────────────
 const TABS = [
   { id: 'ia',            label: 'Generador IA',   icon: Sparkles  },
   { id: 'integraciones', label: 'Integraciones',  icon: Zap       },
   { id: 'correo',        label: 'Correo (SMTP)',  icon: Mail      },
+  { id: 'cuenta',        label: 'Mi cuenta',      icon: KeyRound  },
 ];
 
 export default function Configuracion() {
@@ -566,6 +679,7 @@ export default function Configuracion() {
           {tab === 'ia'            && <TabIA form={form} set={set} mutation={mutation} saved={saved} />}
           {tab === 'integraciones' && <TabIntegraciones form={form} set={set} mutation={mutation} />}
           {tab === 'correo'        && <TabCorreo />}
+          {tab === 'cuenta'        && <TabCuenta />}
         </motion.div>
       </AnimatePresence>
     </div>
